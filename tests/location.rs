@@ -41,13 +41,38 @@ fn out_of_range_longitude_rejected_at_wire() {
 }
 
 #[test]
-fn non_finite_latitude_rejected() {
-    let mut decoder = Decoder::new("nan");
-    // NOTA may or may not parse `nan` as a float; if it doesn't,
-    // the parser layer rejects before reaching try_new. Either
-    // way, the wire never produces an in-band non-finite Latitude.
-    let result = Latitude::decode(&mut decoder);
-    assert!(result.is_err(), "expected error for non-finite input");
+fn latitude_boundary_90_accepted() {
+    assert!(Latitude::try_new(90.0).is_ok());
+    assert!(Latitude::try_new(-90.0).is_ok());
+}
+
+#[test]
+fn latitude_just_past_boundary_rejected() {
+    assert!(Latitude::try_new(90.000_001).is_err());
+    assert!(Latitude::try_new(-90.000_001).is_err());
+}
+
+#[test]
+fn longitude_boundary_180_accepted() {
+    assert!(Longitude::try_new(180.0).is_ok());
+    assert!(Longitude::try_new(-180.0).is_ok());
+}
+
+#[test]
+fn longitude_just_past_boundary_rejected() {
+    assert!(Longitude::try_new(180.000_001).is_err());
+    assert!(Longitude::try_new(-180.000_001).is_err());
+}
+
+#[test]
+fn nan_latitude_rejected_in_constructor() {
+    assert!(Latitude::try_new(f64::NAN).is_err());
+}
+
+#[test]
+fn infinite_longitude_rejected_in_constructor() {
+    assert!(Longitude::try_new(f64::INFINITY).is_err());
+    assert!(Longitude::try_new(f64::NEG_INFINITY).is_err());
 }
 
 #[test]
@@ -74,8 +99,15 @@ fn location_decode_propagates_field_validation() {
 }
 
 #[test]
-fn try_from_degrees_validates_both_axes() {
-    assert!(Location::try_from_degrees(47.6, -122.3).is_ok());
-    assert!(Location::try_from_degrees(91.0, 0.0).is_err()); // bad lat
-    assert!(Location::try_from_degrees(0.0, 200.0).is_err()); // bad lon
+fn location_field_init_with_validated_newtypes() {
+    // Programmatic construction goes through field-init with
+    // pre-validated newtypes — there is no two-arg
+    // `Location::try_from_degrees` (per skills/rust-discipline.md
+    // §"One object in, one object out").
+    let location = Location {
+        latitude: Latitude::try_new(47.6).unwrap(),
+        longitude: Longitude::try_new(-122.3).unwrap(),
+    };
+    assert_eq!(location.latitude.as_degrees(), 47.6);
+    assert_eq!(location.longitude.as_degrees(), -122.3);
 }

@@ -1,14 +1,22 @@
 //! Zodiacal projection — [`ZodiacSign`], [`EclipticLongitude`],
-//! [`ZodiacalTime`].
+//! [`ZodiacDegree`], [`ZodiacMinute`], [`ZodiacalTime`].
 //!
 //! The sun's apparent ecliptic longitude is what the prototype
 //! called "ordinal solar time"; chronos projects it onto the
 //! twelve-sign zodiac for human-facing display.
+//!
+//! Every typed boundary is validated on decode. `EclipticLongitude`
+//! is strict to `[0, 360)` — astronomical code that produces
+//! unbounded degree values normalises explicitly via
+//! [`EclipticLongitude::from_unnormalized_degrees`] before
+//! constructing.
 
 use core::fmt;
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
+use nota_codec::{NotaEnum, NotaRecord, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
+
+use crate::error::{Error, Result};
 
 /// One of the twelve zodiac signs, in source-declaration
 /// order matching the standard zodiacal sequence (Aries first,
@@ -76,14 +84,36 @@ impl fmt::Display for ZodiacSign {
 }
 
 /// The sun's apparent ecliptic longitude in degrees, in
-/// `[0.0, 360.0)`. Construction wraps into range.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq)]
+/// `[0.0, 360.0)`.
+///
+/// Construction is strict — [`EclipticLongitude::try_new`]
+/// rejects out-of-range and non-finite inputs. Astronomical
+/// code that computes raw degree values (which can land
+/// outside `[0, 360)`) normalises through
+/// [`EclipticLongitude::from_unnormalized_degrees`] before
+/// constructing, so the wire form is always normalised.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
 pub struct EclipticLongitude(f64);
 
 impl EclipticLongitude {
-    /// Construct from any finite degrees value; wraps into
-    /// `[0.0, 360.0)`.
-    pub fn new(degrees: f64) -> Self {
+    /// Construct from a finite degrees value in `[0.0, 360.0)`.
+    pub fn try_new(degrees: f64) -> Result<Self> {
+        if degrees.is_finite() && (0.0..360.0).contains(&degrees) {
+            Ok(Self(degrees))
+        } else {
+            Err(Error::OutOfRange {
+                type_name: "EclipticLongitude",
+                valid_range: "[0, 360)",
+                got: format!("{degrees:?}"),
+            })
+        }
+    }
+
+    /// Construct by wrapping any finite degrees value into
+    /// `[0.0, 360.0)`. For astronomical computations whose
+    /// output is unbounded; the wire-side strict constructor is
+    /// [`Self::try_new`].
+    pub fn from_unnormalized_degrees(degrees: f64) -> Self {
         Self(degrees.rem_euclid(360.0))
     }
 
@@ -99,30 +129,81 @@ impl fmt::Display for EclipticLongitude {
     }
 }
 
+/// Degrees within a zodiacal sign, in `[0, 30)`.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ZodiacDegree(u8);
+
+impl ZodiacDegree {
+    /// Construct from a value in `[0, 30)`.
+    pub fn try_new(degree: u8) -> Result<Self> {
+        if degree < 30 {
+            Ok(Self(degree))
+        } else {
+            Err(Error::OutOfRange {
+                type_name: "ZodiacDegree",
+                valid_range: "[0, 30)",
+                got: format!("{degree}"),
+            })
+        }
+    }
+
+    /// The degree as a `u8` in `[0, 30)`.
+    pub fn as_u8(&self) -> u8 {
+        self.0
+    }
+}
+
+/// Minutes within a zodiacal degree, in `[0, 60)`.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ZodiacMinute(u8);
+
+impl ZodiacMinute {
+    /// Construct from a value in `[0, 60)`.
+    pub fn try_new(minute: u8) -> Result<Self> {
+        if minute < 60 {
+            Ok(Self(minute))
+        } else {
+            Err(Error::OutOfRange {
+                type_name: "ZodiacMinute",
+                valid_range: "[0, 60)",
+                got: format!("{minute}"),
+            })
+        }
+    }
+
+    /// The minute as a `u8` in `[0, 60)`.
+    pub fn as_u8(&self) -> u8 {
+        self.0
+    }
+}
+
 /// A point on the zodiac: `sign` + `degree` (0..30) + `minute`
 /// (0..60). Carried forward from the prototype's zodiacal-time
 /// output formats.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq)]
 pub struct ZodiacalTime {
     pub sign: ZodiacSign,
-    pub degree: u8,
-    pub minute: u8,
+    pub degree: ZodiacDegree,
+    pub minute: ZodiacMinute,
 }
 
 impl ZodiacalTime {
     /// Project an ecliptic longitude onto the zodiac.
     pub fn from_longitude(longitude: EclipticLongitude) -> Self {
-        let total = longitude.as_degrees();
         let sign = ZodiacSign::from_longitude(longitude);
-        let into_sign = total.rem_euclid(30.0);
-        let degree = into_sign.floor() as u8;
-        let minute = ((into_sign - degree as f64) * 60.0).floor() as u8;
-        Self { sign, degree, minute }
+        let into_sign = longitude.as_degrees().rem_euclid(30.0);
+        let degree_raw = (into_sign.floor() as u8).min(29);
+        let minute_raw = (((into_sign - degree_raw as f64) * 60.0).floor() as u8).min(59);
+        Self {
+            sign,
+            degree: ZodiacDegree::try_new(degree_raw).expect("ZodiacDegree::try_new on a value clamped to [0, 30)"),
+            minute: ZodiacMinute::try_new(minute_raw).expect("ZodiacMinute::try_new on a value clamped to [0, 60)"),
+        }
     }
 }
 
 impl fmt::Display for ZodiacalTime {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{} {:02}°{:02}'", self.sign.symbol(), self.degree, self.minute)
+        write!(formatter, "{} {:02}°{:02}'", self.sign.symbol(), self.degree.as_u8(), self.minute.as_u8())
     }
 }

@@ -82,7 +82,10 @@ impl<'sky> Observer<'sky> {
         todo!("CivilDawn → Sunrise → SolarNoon → Sunset → CivilDusk")
     }
 
-    fn _sky(&self) -> &Sky {
+    /// The [`Sky`] this observer is bound to. Useful when a
+    /// caller wants to issue a sky-only query (one that doesn't
+    /// need the location) without re-loading the ephemeris.
+    pub fn sky(&self) -> &Sky {
         self.sky
     }
 }

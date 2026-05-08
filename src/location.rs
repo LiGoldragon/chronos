@@ -38,7 +38,11 @@ impl Latitude {
         if degrees.is_finite() && (-90.0..=90.0).contains(&degrees) {
             Ok(Self(degrees))
         } else {
-            Err(Error::LatitudeOutOfRange { got: degrees })
+            Err(Error::OutOfRange {
+                type_name: "Latitude",
+                valid_range: "[-90, 90]",
+                got: format!("{degrees:?}"),
+            })
         }
     }
 
@@ -64,7 +68,11 @@ impl Longitude {
         if degrees.is_finite() && (-180.0..=180.0).contains(&degrees) {
             Ok(Self(degrees))
         } else {
-            Err(Error::LongitudeOutOfRange { got: degrees })
+            Err(Error::OutOfRange {
+                type_name: "Longitude",
+                valid_range: "[-180, 180]",
+                got: format!("{degrees:?}"),
+            })
         }
     }
 
@@ -87,21 +95,25 @@ impl fmt::Display for Longitude {
 /// and `Longitude` validated on decode, `Location` inherits
 /// the validation: a `(Location 200 -400)` frame is rejected
 /// at the latitude field before any `Location` is constructed.
+///
+/// Programmatic construction goes through field-init with
+/// pre-validated newtypes:
+///
+/// ```ignore
+/// let location = Location {
+///     latitude: Latitude::try_new(47.6)?,
+///     longitude: Longitude::try_new(-122.3)?,
+/// };
+/// ```
+///
+/// There is no `Location::try_from_degrees(f64, f64)`
+/// constructor — that would take two explicit objects at the
+/// boundary, against `~/primary/skills/rust-discipline.md`
+/// §"One object in, one object out".
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub latitude: Latitude,
     pub longitude: Longitude,
-}
-
-impl Location {
-    /// Construct from raw degree values, validating both
-    /// components.
-    pub fn try_from_degrees(latitude: f64, longitude: f64) -> Result<Self> {
-        Ok(Self {
-            latitude: Latitude::try_new(latitude)?,
-            longitude: Longitude::try_new(longitude)?,
-        })
-    }
 }
 
 impl fmt::Display for Location {

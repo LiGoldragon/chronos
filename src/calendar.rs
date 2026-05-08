@@ -8,16 +8,26 @@
 //!
 //! The five output formats of the prototype project all
 //! flow from the same underlying [`OrdinalSolarTime`].
+//!
+//! Like [`crate::zodiac::EclipticLongitude`], `OrdinalSolarTime`
+//! is strict on construction; astronomical code that produces
+//! raw fractions outside `[0, 1)` normalises explicitly via
+//! [`OrdinalSolarTime::from_unnormalized_fraction`] before
+//! constructing.
 
 use core::fmt;
 
-use nota_codec::NotaTransparent;
+use nota_codec::{NotaTransparent, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
+
+use crate::error::{Error, Result};
 
 /// A vernal-equinox-anchored year number, signed.
 ///
 /// AM-year 0 is the project-defined epoch; positive years
-/// follow chronologically.
+/// follow chronologically. Any signed integer is a valid
+/// year, so [`AmYear`] is `NotaTransparent` — no validation
+/// gap exists.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AmYear(i32);
 
@@ -43,21 +53,35 @@ impl fmt::Display for AmYear {
 /// position in the year, in `[0.0, 1.0)` where `0.0` is
 /// the vernal equinox and `0.5` the autumnal equinox.
 ///
-/// Resolution is the underlying f64; the prototype's five
-/// output formats are all `Display` projections of this one
-/// value.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq)]
+/// Construction is strict — [`OrdinalSolarTime::try_new`]
+/// rejects out-of-range and non-finite inputs.
+/// [`OrdinalSolarTime::from_unnormalized_fraction`] wraps any
+/// finite input into `[0, 1)` for astronomical-pipeline use.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
 pub struct OrdinalSolarTime(f64);
 
 impl OrdinalSolarTime {
-    /// Construct from a fractional value; wraps into `[0.0, 1.0)`.
-    pub fn new(fraction: f64) -> Self {
+    /// Construct from a finite fraction in `[0.0, 1.0)`.
+    pub fn try_new(fraction: f64) -> Result<Self> {
+        if fraction.is_finite() && (0.0..1.0).contains(&fraction) {
+            Ok(Self(fraction))
+        } else {
+            Err(Error::OutOfRange {
+                type_name: "OrdinalSolarTime",
+                valid_range: "[0, 1)",
+                got: format!("{fraction:?}"),
+            })
+        }
+    }
+
+    /// Construct by wrapping any finite fraction into `[0.0, 1.0)`.
+    pub fn from_unnormalized_fraction(fraction: f64) -> Self {
         Self(fraction.rem_euclid(1.0))
     }
 
-    /// Construct from a year fraction in degrees `[0.0, 360.0)`.
-    pub fn from_degrees(degrees: f64) -> Self {
-        Self::new(degrees / 360.0)
+    /// Construct from a year fraction in degrees.
+    pub fn from_unnormalized_degrees(degrees: f64) -> Self {
+        Self::from_unnormalized_fraction(degrees / 360.0)
     }
 
     /// The fractional position in `[0.0, 1.0)`.

@@ -1,4 +1,5 @@
-//! Solar events — [`SolarEvent`], [`SolarEventKind`].
+//! Solar events — [`SolarEvent`], [`SolarEventKind`],
+//! [`EpochTaiNanos`].
 //!
 //! These are the pushed records subscribers receive on each
 //! daily fire. Per `~/primary/skills/push-not-pull.md`
@@ -41,6 +42,9 @@ pub enum SolarEventKind {
 /// An instant in TAI nanoseconds since the J2000 epoch, wire-
 /// stable and zero-copy in rkyv. Constructed from a `hifitime`
 /// [`Epoch`] for human-side use.
+///
+/// Any signed `i64` is a valid offset, so this is
+/// `NotaTransparent` — no validation gap.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EpochTaiNanos(i64);
 
@@ -67,5 +71,5 @@ impl EpochTaiNanos {
 pub struct SolarEvent {
     pub kind: SolarEventKind,
     pub when: EpochTaiNanos,
-    pub at: Location,
+    pub location: Location,
 }

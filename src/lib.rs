@@ -26,9 +26,9 @@ pub mod zodiac;
 
 pub use calendar::{AmYear, OrdinalSolarTime};
 pub use error::{Error, Result};
-pub use event::{SolarEvent, SolarEventKind};
+pub use event::{EpochTaiNanos, SolarEvent, SolarEventKind};
 pub use location::{Latitude, Location, LocationSource, Longitude};
 pub use request::Request;
 pub use response::Response;
 pub use sky::{Observer, Sky, SkyState};
-pub use zodiac::{EclipticLongitude, ZodiacSign, ZodiacalTime};
+pub use zodiac::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};

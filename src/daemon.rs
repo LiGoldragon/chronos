@@ -58,6 +58,15 @@ pub async fn run() -> Result<()> {
     Ok(())
 }
 
+// TODO(chronos-impl): both `serve_connection` and
+// `dispatch_one_shot` are free functions doing real work on
+// typed values — provisional only. Per
+// `~/primary/skills/abstractions.md` §"Verb belongs to noun",
+// the implementation phase attaches them to typed nouns:
+// `Daemon` (owns the listener + state stores), `Connection`
+// (owns one stream + its protocol state), and `SubscriptionHub`
+// (owns the live subscriber set).
+
 async fn serve_connection(mut stream: UnixStream) -> Result<()> {
     let frame = read_frame(&mut stream).await?;
     let request = Request::from_archive(&frame)?;

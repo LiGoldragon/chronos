@@ -35,13 +35,18 @@ pub enum Error {
     #[error("solar position: {0}")]
     SolarPosition(String),
 
-    /// A latitude was outside `[-90.0, 90.0]` or non-finite.
-    #[error("latitude must be in [-90, 90], got {got}")]
-    LatitudeOutOfRange { got: f64 },
-
-    /// A longitude was outside `[-180.0, 180.0]` or non-finite.
-    #[error("longitude must be in [-180, 180], got {got}")]
-    LongitudeOutOfRange { got: f64 },
+    /// A typed newtype's `try_new` rejected an input that was
+    /// outside its valid range. `type_name` names the newtype
+    /// (`Latitude`, `EclipticLongitude`, `ZodiacDegree`, …);
+    /// `valid_range` is a human-facing description of the
+    /// constraint (`"[-90, 90]"`, `"[0, 360)"`, …); `got` is the
+    /// rejected value's `Display` form.
+    ///
+    /// Wire-side, `NotaTryTransparent` wraps this into
+    /// `nota_codec::Error::Validation { type_name, message }`
+    /// where the message renders this variant.
+    #[error("`{type_name}` out of range {valid_range}, got {got}")]
+    OutOfRange { type_name: &'static str, valid_range: &'static str, got: String },
 
     /// The daemon refused a request.
     #[error("daemon: {message}")]
