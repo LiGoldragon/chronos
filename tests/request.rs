@@ -47,8 +47,8 @@ fn set_location_seattle() {
     assert_eq!(
         request,
         Request::SetLocation {
-            latitude: Latitude::new(47.6).unwrap(),
-            longitude: Longitude::new(-122.3).unwrap(),
+            latitude: Latitude::try_new(47.6).unwrap(),
+            longitude: Longitude::try_new(-122.3).unwrap(),
         }
     );
     round_trip_rkyv(&request);

@@ -6,31 +6,40 @@
 //! values are types, not primitives"). Construction validates
 //! the range; raw access goes through [`Latitude::as_degrees`]
 //! and [`Longitude::as_degrees`].
+//!
+//! Wire decoding routes through [`Latitude::try_new`] /
+//! [`Longitude::try_new`] via the `NotaTryTransparent` derive
+//! (same shape as horizon-rs's `SshPubKey`/`NixPubKey`/
+//! `WireguardPubKey`/`CriomeDomainName`). An out-of-range
+//! latitude or longitude on the wire surfaces as
+//! `nota_codec::Error::Validation { type_name, message }`,
+//! never reaches the daemon.
 
 use core::fmt;
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
+use nota_codec::{NotaEnum, NotaRecord, NotaTryTransparent};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
 
 /// Latitude in degrees, in `[-90.0, 90.0]`.
 ///
-/// The wire form is the bare degrees value; validation runs
-/// on construction through [`Latitude::new`]. Wire decoders
-/// that bypass `new` and feed an out-of-range float produce
-/// a record that violates the type's invariant — see the
-/// schema-discipline note in `skills.md`.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq)]
+/// Construction is fallible — [`Latitude::try_new`] rejects
+/// out-of-range and non-finite inputs. The wire form is the
+/// bare degrees value; the `NotaTryTransparent` derive routes
+/// decode through `try_new`, so an invalid wire latitude is
+/// rejected at the parser boundary.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
 pub struct Latitude(f64);
 
 impl Latitude {
     /// Construct from a degrees value in `[-90.0, 90.0]`.
-    pub fn new(degrees: f64) -> Result<Self> {
-        if !degrees.is_finite() || !(-90.0..=90.0).contains(&degrees) {
-            return Err(Error::LocationOutOfRange { latitude: degrees, longitude: 0.0 });
+    pub fn try_new(degrees: f64) -> Result<Self> {
+        if degrees.is_finite() && (-90.0..=90.0).contains(&degrees) {
+            Ok(Self(degrees))
+        } else {
+            Err(Error::LatitudeOutOfRange { got: degrees })
         }
-        Ok(Self(degrees))
     }
 
     /// The latitude in degrees.
@@ -46,16 +55,17 @@ impl fmt::Display for Latitude {
 }
 
 /// Longitude in degrees, in `[-180.0, 180.0]`. East is positive.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
 pub struct Longitude(f64);
 
 impl Longitude {
     /// Construct from a degrees value in `[-180.0, 180.0]`.
-    pub fn new(degrees: f64) -> Result<Self> {
-        if !degrees.is_finite() || !(-180.0..=180.0).contains(&degrees) {
-            return Err(Error::LocationOutOfRange { latitude: 0.0, longitude: degrees });
+    pub fn try_new(degrees: f64) -> Result<Self> {
+        if degrees.is_finite() && (-180.0..=180.0).contains(&degrees) {
+            Ok(Self(degrees))
+        } else {
+            Err(Error::LongitudeOutOfRange { got: degrees })
         }
-        Ok(Self(degrees))
     }
 
     /// The longitude in degrees.
@@ -71,6 +81,12 @@ impl fmt::Display for Longitude {
 }
 
 /// A geographic location — latitude + longitude.
+///
+/// `Location` derives `NotaRecord`, whose per-field decode
+/// delegates to each field's `NotaDecode`. With `Latitude`
+/// and `Longitude` validated on decode, `Location` inherits
+/// the validation: a `(Location 200 -400)` frame is rejected
+/// at the latitude field before any `Location` is constructed.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub latitude: Latitude,
@@ -80,10 +96,10 @@ pub struct Location {
 impl Location {
     /// Construct from raw degree values, validating both
     /// components.
-    pub fn from_degrees(latitude: f64, longitude: f64) -> Result<Self> {
+    pub fn try_from_degrees(latitude: f64, longitude: f64) -> Result<Self> {
         Ok(Self {
-            latitude: Latitude::new(latitude)?,
-            longitude: Longitude::new(longitude)?,
+            latitude: Latitude::try_new(latitude)?,
+            longitude: Longitude::try_new(longitude)?,
         })
     }
 }

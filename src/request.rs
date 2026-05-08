@@ -4,7 +4,7 @@
 //! positional arg). Travels on the wire as a length-prefixed
 //! rkyv archive over the daemon's UDS.
 
-use nota_codec::{Decoder, Encoder, NexusVerb, NotaDecode, NotaEncode};
+use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaSum};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -12,7 +12,7 @@ use crate::event::SolarEventKind;
 use crate::location::{Latitude, Longitude};
 
 /// What the CLI / a subscriber sends to the daemon.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NexusVerb, Debug, Clone, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq)]
 pub enum Request {
     /// Read the current zodiacal time.
     GetTime {},
@@ -43,14 +43,14 @@ pub enum Request {
 impl Request {
     /// Parse a single NOTA record into a typed request.
     pub fn from_nota(text: &str) -> Result<Self> {
-        let mut decoder = Decoder::nota(text);
+        let mut decoder = Decoder::new(text);
         let request = <Self as NotaDecode>::decode(&mut decoder)?;
         Ok(request)
     }
 
     /// Render this request as a NOTA record.
     pub fn to_nota(&self) -> Result<String> {
-        let mut encoder = Encoder::nota();
+        let mut encoder = Encoder::new();
         <Self as NotaEncode>::encode(self, &mut encoder)?;
         Ok(encoder.into_string())
     }

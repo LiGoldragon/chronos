@@ -84,7 +84,7 @@ pub fn socket_path() -> std::path::PathBuf {
 /// gate; the daemon and CLI both need it for the per-user
 /// socket path under `/run/chronos/<uid>.sock`.
 unsafe fn libc_uid() -> u32 {
-    extern "C" {
+    unsafe extern "C" {
         fn getuid() -> u32;
     }
     unsafe { getuid() }

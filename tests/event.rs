@@ -19,7 +19,7 @@ fn every_solar_event_kind_is_unique() {
 
 #[test]
 fn solar_event_archives_round_trip() {
-    let location = Location::from_degrees(47.6, -122.3).expect("valid location");
+    let location = Location::try_from_degrees(47.6, -122.3).expect("valid location");
     let when = chronos::event::EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0));
     let event = SolarEvent {
         kind: SolarEventKind::CivilDawn,

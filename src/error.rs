@@ -35,9 +35,13 @@ pub enum Error {
     #[error("solar position: {0}")]
     SolarPosition(String),
 
-    /// A latitude or longitude was outside the valid range.
-    #[error("location out of range: {latitude}°, {longitude}°")]
-    LocationOutOfRange { latitude: f64, longitude: f64 },
+    /// A latitude was outside `[-90.0, 90.0]` or non-finite.
+    #[error("latitude must be in [-90, 90], got {got}")]
+    LatitudeOutOfRange { got: f64 },
+
+    /// A longitude was outside `[-180.0, 180.0]` or non-finite.
+    #[error("longitude must be in [-180, 180], got {got}")]
+    LongitudeOutOfRange { got: f64 },
 
     /// The daemon refused a request.
     #[error("daemon: {message}")]
