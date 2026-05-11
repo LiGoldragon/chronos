@@ -91,7 +91,8 @@ prompts (always `-m '<msg>'`).
 - `~/primary/skills/push-not-pull.md` — subscription discipline.
 - `~/primary/skills/abstractions.md` — verb-belongs-to-noun.
 - `~/primary/skills/beauty.md` — beauty as criterion.
-- `~/primary/repos/lore/rust/ractor.md` — actor template.
+- `~/primary/skills/actor-systems.md` — actor topology discipline.
+- `~/primary/skills/kameo.md` — Kameo actor runtime discipline.
 - `~/primary/repos/lore/rust/rkyv.md` — wire format discipline.
 - `~/primary/repos/signal` — canonical signal pattern reference.
 - `~/primary/repos/lojix-cli` — canonical NOTA-on-argv CLI shape.

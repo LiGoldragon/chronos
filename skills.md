@@ -58,9 +58,9 @@ report, not a pull request.
    one explicit object alongside `self` and return one
    object. No anonymous tuples at type boundaries.
 
-5. **The supervisor is the only `spawn` site.** Every other
-   actor is `spawn_linked` from its parent's `pre_start`.
-   Failures escalate.
+5. **The runtime root is the only raw `spawn` site.** Every other
+   actor is supervised from its parent with Kameo's
+   `supervise(&parent, ...).spawn().await` shape. Failures escalate.
 
 6. **Type names don't carry the crate name.** Use
    `chronos::Request`, not `chronos::ChronosRequest`. The
@@ -119,8 +119,9 @@ If a change touches one of these, it goes upstream
 - `~/primary/reports/system-specialist/49-chronos-daemon-design.md`
   — design report.
 - `~/primary/skills/rust-discipline.md` — Rust style and
-  shape; methods on types, domain newtypes, errors,
-  ractor, redb + rkyv.
+  shape; methods on types, domain newtypes, errors, redb + rkyv.
+- `~/primary/skills/actor-systems.md` — actor topology discipline.
+- `~/primary/skills/kameo.md` — Kameo actor runtime discipline.
 - `~/primary/skills/push-not-pull.md` — subscription
   discipline.
 - `~/primary/skills/abstractions.md` — verb belongs to
@@ -133,6 +134,5 @@ If a change touches one of these, it goes upstream
   to chronos's twilight events.
 - `~/primary/repos/signal` — canonical signal pattern.
 - `~/primary/repos/lojix-cli` — canonical NOTA-on-argv CLI.
-- `~/primary/repos/lore/rust/ractor.md` — actor template.
 - `~/primary/repos/lore/rust/rkyv.md` — wire-format
   discipline, feature pinning.

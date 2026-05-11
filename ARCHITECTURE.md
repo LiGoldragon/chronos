@@ -67,11 +67,10 @@ Supervisor
 └── SocketServer                     (UDS at /run/chronos/<uid>.sock)
 ```
 
-Per ractor discipline (lore's `rust/ractor.md`): each actor's
-message type is its own enum with one variant per request
-kind (perfect specificity); state is owned, not shared;
-failures escalate; bare `Actor::spawn` runs only at the
-supervisor.
+Per workspace Kameo discipline: each actor is a data-bearing noun,
+message types are specific to their requests, state is owned rather
+than shared, failures escalate, and raw `spawn` belongs only at the
+runtime root. Children spawn through supervised parent builders.
 
 ## IPC shape — the canonical signal pattern
 
