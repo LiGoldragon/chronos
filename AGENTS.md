@@ -13,9 +13,6 @@ local observer. Chroma's schedule engine subscribes to chronos's
 twilight events and reacts; humans query chronos via NOTA-on-argv
 (`chronos '(GetTime)'`) for the current zodiacal time.
 
-The design lives in
-`~/primary/reports/system-specialist/49-chronos-daemon-design.md`.
-
 ## Carve-outs worth knowing
 
 - **Push, not poll.** Chronos pushes events at deadlines
@@ -83,8 +80,6 @@ prompts (always `-m '<msg>'`).
 - `~/primary/AGENTS.md` — workspace agent contract.
 - `~/primary/repos/lore/AGENTS.md` — canonical (cross-workspace)
   agent contract.
-- `~/primary/reports/system-specialist/49-chronos-daemon-design.md`
-  — design report.
 - `~/primary/repos/chroma` — sibling daemon; subscribes to
   chronos's twilight events.
 - `~/primary/skills/rust-discipline.md` — Rust style and shape.
