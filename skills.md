@@ -20,12 +20,6 @@ events*. The pipeline is JPL DE440 (`anise`) + NREL SPA
 (`solar-positioning`) + UTC↔TT↔TDB (`hifitime`) — no Meeus,
 no live JPL Horizons fetch, no calibration loop.
 
-The design context lives in
-`~/primary/reports/system-specialist/49-chronos-daemon-design.md`.
-Read it before substantive changes — it carries the
-library survey and the case for DE440-as-ground-truth over
-the prototype's hand-rolled Meeus pipeline.
-
 ---
 
 ## Invariants
@@ -116,8 +110,6 @@ If a change touches one of these, it goes upstream
 
 - `ARCHITECTURE.md` — what the system IS.
 - `AGENTS.md` — agent contract for this repo.
-- `~/primary/reports/system-specialist/49-chronos-daemon-design.md`
-  — design report.
 - `~/primary/skills/rust-discipline.md` — Rust style and
   shape; methods on types, domain newtypes, errors, redb + rkyv.
 - `~/primary/skills/actor-systems.md` — actor topology discipline.

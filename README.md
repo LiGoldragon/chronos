@@ -40,12 +40,6 @@ and receive each event as it fires. The producer pushes;
 the consumer waits. Per `~/primary/skills/push-not-pull.md`,
 no polling.
 
-## Design
-
-See `~/primary/reports/system-specialist/49-chronos-daemon-design.md`
-for the full design — library survey, astronomical pipeline,
-schema discipline, phase plan.
-
 ## Status
 
 Phase 1 skeleton — types declared, daemon structure laid out,
