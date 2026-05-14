@@ -6,12 +6,6 @@ when the next twilight fires. It publishes typed events to
 subscribers and answers one-shot queries through the canonical
 signal pattern.
 
-The full design lives in
-`~/primary/reports/system-specialist/49-chronos-daemon-design.md`.
-This file describes the system shape that ships; the report
-describes trade-offs and the library research grounding the
-choices.
-
 ## Capability boundary
 
 Chronos owns:
@@ -137,5 +131,3 @@ NOTA (CLI argv + printed reply).
 - Astronomical twilight beyond civil + nautical (Phase 1.1)
 - Event replay for late-joining subscribers (out — pushed
   events are ephemeral)
-
-See the design report for the rationale behind each.
