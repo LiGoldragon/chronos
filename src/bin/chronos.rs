@@ -8,7 +8,9 @@
 fn main() -> chronos::Result<()> {
     let mut args = std::env::args().skip(1);
     let request_text = args.next().unwrap_or_else(|| {
-        eprintln!("usage: chronos '(GetTime)' | '(GetSchedule)' | '(GetLocation)' | '(SetLocation 47.6 -122.3)' | '(UseGeoclue)' | …");
+        eprintln!(
+            "usage: chronos 'GetTime' | 'GetSchedule' | 'GetLocation' | '(SetLocation 47.6 -122.3)' | 'UseGeoclue' | …"
+        );
         std::process::exit(2);
     });
 

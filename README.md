@@ -24,8 +24,8 @@ no calibration loop, no live JPL Horizons fetch.
 **One-shot CLI** for humans:
 
 ```sh
-chronos '(GetTime)'                  # current zodiacal time
-chronos '(GetSchedule today)'        # today's sunrise/sunset/twilights
+chronos 'GetTime'                    # current zodiacal time
+chronos 'GetSchedule'                # today's sunrise/sunset/twilights
 chronos '(SetLocation 47.6 -122.3)'  # manual location override
 ```
 

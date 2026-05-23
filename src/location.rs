@@ -93,7 +93,7 @@ impl fmt::Display for Longitude {
 /// `Location` derives `NotaRecord`, whose per-field decode
 /// delegates to each field's `NotaDecode`. With `Latitude`
 /// and `Longitude` validated on decode, `Location` inherits
-/// the validation: a `(Location 200 -400)` frame is rejected
+/// the validation: a `(200 -400)` frame is rejected
 /// at the latitude field before any `Location` is constructed.
 ///
 /// Programmatic construction goes through field-init with

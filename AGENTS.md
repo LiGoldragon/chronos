@@ -11,7 +11,7 @@ service that publishes the current zodiacal time, sunrise /
 sunset, civil twilight, and other ordinal-solar events for the
 local observer. Chroma's schedule engine subscribes to chronos's
 twilight events and reacts; humans query chronos via NOTA-on-argv
-(`chronos '(GetTime)'`) for the current zodiacal time.
+(`chronos 'GetTime'`) for the current zodiacal time.
 
 ## Carve-outs worth knowing
 

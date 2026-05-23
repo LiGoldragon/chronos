@@ -5,7 +5,7 @@
 //! subscriber receives one `Event` frame per fire on a long-
 //! lived connection.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaSum};
+use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -14,10 +14,10 @@ use crate::location::{Location, LocationSource};
 use crate::zodiac::ZodiacalTime;
 
 /// What the daemon replies with.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq)]
 pub enum Response {
     /// The request was accepted and produced no reply payload.
-    Acked {},
+    Acked,
 
     /// The current zodiacal time (reply to `GetTime`).
     Time { zodiacal_time: ZodiacalTime },

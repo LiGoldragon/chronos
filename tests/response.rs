@@ -3,7 +3,7 @@
 //! Every variant must survive both wire formats:
 //! NOTA (the daemon's reply-rendering path) and rkyv (the
 //! UDS frame path). The CLI's print loop renders responses
-//! as NOTA, so any breakage here breaks `chronos '(GetTime)'`.
+//! as NOTA, so any breakage here breaks `chronos 'GetTime'`.
 
 use chronos::{
     EclipticLongitude, EpochTaiNanos, Latitude, Location, LocationSource, Longitude, Response, SolarEvent,
@@ -32,7 +32,7 @@ fn seattle() -> Location {
 
 #[test]
 fn acked() {
-    let response = Response::Acked {};
+    let response = Response::Acked;
     round_trip_nota(&response);
     round_trip_rkyv(&response);
 }
@@ -98,4 +98,12 @@ fn error_message() {
     let response = Response::Error { message: "ephemeris file not found".into() };
     round_trip_nota(&response);
     round_trip_rkyv(&response);
+}
+
+#[test]
+fn error_messages_with_apostrophes_do_not_require_quote_delimiters() {
+    let response = Response::Error { message: "sky's ephemeris is missing".into() };
+    let text = response.to_nota().expect("nota encode");
+    assert_eq!(text, "(Error [sky's ephemeris is missing])");
+    assert_eq!(Response::from_nota(&text).expect("nota decode"), response);
 }

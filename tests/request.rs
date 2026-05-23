@@ -22,22 +22,22 @@ fn round_trip_rkyv(request: &Request) {
 
 #[test]
 fn get_time() {
-    let request = round_trip_nota("(GetTime)");
-    assert_eq!(request, Request::GetTime {});
+    let request = round_trip_nota("GetTime");
+    assert_eq!(request, Request::GetTime);
     round_trip_rkyv(&request);
 }
 
 #[test]
 fn get_schedule() {
-    let request = round_trip_nota("(GetSchedule)");
-    assert_eq!(request, Request::GetSchedule {});
+    let request = round_trip_nota("GetSchedule");
+    assert_eq!(request, Request::GetSchedule);
     round_trip_rkyv(&request);
 }
 
 #[test]
 fn get_location() {
-    let request = round_trip_nota("(GetLocation)");
-    assert_eq!(request, Request::GetLocation {});
+    let request = round_trip_nota("GetLocation");
+    assert_eq!(request, Request::GetLocation);
     round_trip_rkyv(&request);
 }
 
@@ -56,17 +56,14 @@ fn set_location_seattle() {
 
 #[test]
 fn use_geoclue() {
-    let request = round_trip_nota("(UseGeoclue)");
-    assert_eq!(request, Request::UseGeoclue {});
+    let request = round_trip_nota("UseGeoclue");
+    assert_eq!(request, Request::UseGeoclue);
     round_trip_rkyv(&request);
 }
 
 #[test]
 fn subscribe_civil_dawn_and_dusk() {
     let request = round_trip_nota("(Subscribe [CivilDawn CivilDusk])");
-    assert_eq!(
-        request,
-        Request::Subscribe { kinds: vec![SolarEventKind::CivilDawn, SolarEventKind::CivilDusk] }
-    );
+    assert_eq!(request, Request::Subscribe { kinds: vec![SolarEventKind::CivilDawn, SolarEventKind::CivilDusk] });
     round_trip_rkyv(&request);
 }

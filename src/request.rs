@@ -4,7 +4,7 @@
 //! positional arg). Travels on the wire as a length-prefixed
 //! rkyv archive over the daemon's UDS.
 
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaSum};
+use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode, NotaEnum};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -12,23 +12,23 @@ use crate::event::SolarEventKind;
 use crate::location::{Latitude, Longitude};
 
 /// What the CLI / a subscriber sends to the daemon.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaSum, Debug, Clone, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, PartialEq)]
 pub enum Request {
     /// Read the current zodiacal time.
-    GetTime {},
+    GetTime,
 
     /// Read today's full solar schedule (CivilDawn → CivilDusk).
-    GetSchedule {},
+    GetSchedule,
 
     /// Read the daemon's current authoritative location.
-    GetLocation {},
+    GetLocation,
 
     /// Override location manually (persists across restarts).
     /// Switches `LocationSource` to `Manual`.
     SetLocation { latitude: Latitude, longitude: Longitude },
 
     /// Switch back to `Geoclue`-driven location.
-    UseGeoclue {},
+    UseGeoclue,
 
     /// Open a long-lived event stream. The daemon replies
     /// with one frame per event of the requested kinds, in

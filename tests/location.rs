@@ -84,11 +84,11 @@ fn from_self_for_inner_is_emitted_for_latitude() {
 
 #[test]
 fn location_decode_propagates_field_validation() {
-    // (Location 200.0 0.0) — invalid latitude inside an
+    // (200.0 0.0) — invalid latitude inside an
     // otherwise-valid Location record. NotaRecord delegates
     // per-field decode, so the latitude field's NotaTryTransparent
     // validation surfaces before any Location is constructed.
-    let mut decoder = Decoder::new("(Location 200.0 0.0)");
+    let mut decoder = Decoder::new("(200.0 0.0)");
     let error = Location::decode(&mut decoder).unwrap_err();
     match error {
         NotaError::Validation { type_name, .. } => {
