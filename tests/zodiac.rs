@@ -2,7 +2,7 @@
 //! module.
 
 use chronos::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};
-use nota_codec::{Decoder, Encoder, Error as NotaError, NotaDecode, NotaEncode};
+use nota_next::{NotaDecodeError, NotaEncode, NotaSource};
 
 // ─── ZodiacSign ────────────────────────────────────────────
 
@@ -62,11 +62,8 @@ fn zodiac_sign_nota_round_trips_for_every_variant() {
         ZodiacSign::Aquarius,
         ZodiacSign::Pisces,
     ] {
-        let mut encoder = Encoder::new();
-        sign.encode(&mut encoder).expect("encode");
-        let text = encoder.into_string();
-        let mut decoder = Decoder::new(&text);
-        let decoded = ZodiacSign::decode(&mut decoder).expect("decode");
+        let text = sign.to_nota();
+        let decoded = NotaSource::new(&text).parse::<ZodiacSign>().expect("decode");
         assert_eq!(decoded, sign, "round-trip changed {sign:?} via text {text:?}");
     }
 }
@@ -101,14 +98,13 @@ fn ecliptic_longitude_from_unnormalized_wraps() {
 
 #[test]
 fn ecliptic_longitude_wire_validation() {
-    let mut decoder = Decoder::new("400.0");
-    let error = EclipticLongitude::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("400.0").parse::<EclipticLongitude>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, message } => {
+        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "EclipticLongitude");
-            assert!(message.contains("[0, 360)"), "message was: {message}");
+            assert!(reason.contains("[0, 360)"), "message was: {reason}");
         }
-        other => panic!("expected Validation error, got {other:?}"),
+        other => panic!("expected InvalidValue error, got {other:?}"),
     }
 }
 
@@ -127,14 +123,13 @@ fn zodiac_degree_30_rejected() {
 
 #[test]
 fn zodiac_degree_wire_validation() {
-    let mut decoder = Decoder::new("30");
-    let error = ZodiacDegree::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("30").parse::<ZodiacDegree>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, message } => {
+        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "ZodiacDegree");
-            assert!(message.contains("[0, 30)"), "message was: {message}");
+            assert!(reason.contains("[0, 30)"), "message was: {reason}");
         }
-        other => panic!("expected Validation error, got {other:?}"),
+        other => panic!("expected InvalidValue error, got {other:?}"),
     }
 }
 
@@ -169,10 +164,7 @@ fn zodiacal_time_display_uses_unicode_symbol() {
 #[test]
 fn zodiacal_time_nota_round_trip() {
     let original = ZodiacalTime::from_longitude(EclipticLongitude::try_new(135.5).unwrap());
-    let mut encoder = Encoder::new();
-    original.encode(&mut encoder).expect("encode");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let decoded = ZodiacalTime::decode(&mut decoder).expect("decode");
+    let text = original.to_nota();
+    let decoded = NotaSource::new(&text).parse::<ZodiacalTime>().expect("decode");
     assert_eq!(decoded, original);
 }

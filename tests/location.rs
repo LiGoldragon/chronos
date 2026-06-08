@@ -1,42 +1,38 @@
 //! Pins the wire-validation contract for [`Latitude`] and
 //! [`Longitude`] — decode rejects out-of-range values with
-//! `nota_codec::Error::Validation { type_name, message }`,
-//! same shape as `repos/nota-codec/tests/nota_try_transparent_round_trip.rs`
-//! pins for the canonical `ShortHex` example.
+//! `NotaDecodeError::InvalidValue` before constructing the
+//! domain type.
 
 use chronos::{Latitude, Location, Longitude};
-use nota_codec::{Decoder, Error as NotaError, NotaDecode};
+use nota_next::{NotaDecodeError, NotaSource};
 
 #[test]
 fn valid_latitude_decodes_through_try_new() {
-    let mut decoder = Decoder::new("47.6");
-    let value = Latitude::decode(&mut decoder).unwrap();
+    let value = NotaSource::new("47.6").parse::<Latitude>().unwrap();
     assert_eq!(value, Latitude::try_new(47.6).unwrap());
 }
 
 #[test]
 fn out_of_range_latitude_rejected_at_wire() {
-    let mut decoder = Decoder::new("200.0");
-    let error = Latitude::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("200.0").parse::<Latitude>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, message } => {
+        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "Latitude");
-            assert!(message.contains("[-90, 90]"), "message was: {message}");
+            assert!(reason.contains("[-90, 90]"), "message was: {reason}");
         }
-        other => panic!("expected Validation error, got {other:?}"),
+        other => panic!("expected InvalidValue error, got {other:?}"),
     }
 }
 
 #[test]
 fn out_of_range_longitude_rejected_at_wire() {
-    let mut decoder = Decoder::new("-400.0");
-    let error = Longitude::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("-400.0").parse::<Longitude>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, message } => {
+        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "Longitude");
-            assert!(message.contains("[-180, 180]"), "message was: {message}");
+            assert!(reason.contains("[-180, 180]"), "message was: {reason}");
         }
-        other => panic!("expected Validation error, got {other:?}"),
+        other => panic!("expected InvalidValue error, got {other:?}"),
     }
 }
 
@@ -85,16 +81,15 @@ fn from_self_for_inner_is_emitted_for_latitude() {
 #[test]
 fn location_decode_propagates_field_validation() {
     // (200.0 0.0) — invalid latitude inside an
-    // otherwise-valid Location record. NotaRecord delegates
-    // per-field decode, so the latitude field's NotaTryTransparent
+    // otherwise-valid Location record. NotaDecode delegates
+    // per-field decode, so the latitude field's constructor
     // validation surfaces before any Location is constructed.
-    let mut decoder = Decoder::new("(200.0 0.0)");
-    let error = Location::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("(200.0 0.0)").parse::<Location>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, .. } => {
+        NotaDecodeError::InvalidValue { type_name, .. } => {
             assert_eq!(type_name, "Latitude");
         }
-        other => panic!("expected Validation error from latitude field, got {other:?}"),
+        other => panic!("expected InvalidValue error from latitude field, got {other:?}"),
     }
 }
 
@@ -104,10 +99,8 @@ fn location_field_init_with_validated_newtypes() {
     // pre-validated newtypes — there is no two-arg
     // `Location::try_from_degrees` (per skills/rust-discipline.md
     // §"One object in, one object out").
-    let location = Location {
-        latitude: Latitude::try_new(47.6).unwrap(),
-        longitude: Longitude::try_new(-122.3).unwrap(),
-    };
+    let location =
+        Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() };
     assert_eq!(location.latitude.as_degrees(), 47.6);
     assert_eq!(location.longitude.as_degrees(), -122.3);
 }

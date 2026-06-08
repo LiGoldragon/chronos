@@ -24,10 +24,7 @@ fn round_trip_rkyv(response: &Response) {
 }
 
 fn seattle() -> Location {
-    Location {
-        latitude: Latitude::try_new(47.6).unwrap(),
-        longitude: Longitude::try_new(-122.3).unwrap(),
-    }
+    Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() }
 }
 
 #[test]
@@ -39,9 +36,8 @@ fn acked() {
 
 #[test]
 fn time() {
-    let response = Response::Time {
-        zodiacal_time: ZodiacalTime::from_longitude(EclipticLongitude::try_new(45.0).unwrap()),
-    };
+    let response =
+        Response::Time { zodiacal_time: ZodiacalTime::from_longitude(EclipticLongitude::try_new(45.0).unwrap()) };
     round_trip_nota(&response);
     round_trip_rkyv(&response);
 }

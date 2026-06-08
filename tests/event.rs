@@ -2,13 +2,10 @@
 //! `SolarEvent` — both wire formats (NOTA + rkyv).
 
 use chronos::{EpochTaiNanos, Latitude, Location, Longitude, SolarEvent, SolarEventKind};
-use nota_codec::{Decoder, Encoder, NotaDecode, NotaEncode};
+use nota_next::{NotaEncode, NotaSource};
 
 fn seattle() -> Location {
-    Location {
-        latitude: Latitude::try_new(47.6).unwrap(),
-        longitude: Longitude::try_new(-122.3).unwrap(),
-    }
+    Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() }
 }
 
 fn sample_event(kind: SolarEventKind) -> SolarEvent {
@@ -43,11 +40,8 @@ fn solar_event_kind_nota_round_trips_for_every_variant() {
         SolarEventKind::Sunset,
         SolarEventKind::CivilDusk,
     ] {
-        let mut encoder = Encoder::new();
-        kind.encode(&mut encoder).expect("encode");
-        let text = encoder.into_string();
-        let mut decoder = Decoder::new(&text);
-        let decoded = SolarEventKind::decode(&mut decoder).expect("decode");
+        let text = kind.to_nota();
+        let decoded = NotaSource::new(&text).parse::<SolarEventKind>().expect("decode");
         assert_eq!(decoded, kind, "round-trip changed {kind:?} via text {text:?}");
     }
 }
@@ -63,11 +57,8 @@ fn solar_event_archives_round_trip() {
 #[test]
 fn solar_event_nota_round_trip() {
     let event = sample_event(SolarEventKind::CivilDusk);
-    let mut encoder = Encoder::new();
-    event.encode(&mut encoder).expect("encode");
-    let text = encoder.into_string();
-    let mut decoder = Decoder::new(&text);
-    let decoded = SolarEvent::decode(&mut decoder).expect("decode");
+    let text = event.to_nota();
+    let decoded = NotaSource::new(&text).parse::<SolarEvent>().expect("decode");
     assert_eq!(decoded, event);
 }
 

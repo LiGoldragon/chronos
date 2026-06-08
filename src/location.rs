@@ -8,16 +8,13 @@
 //! and [`Longitude::as_degrees`].
 //!
 //! Wire decoding routes through [`Latitude::try_new`] /
-//! [`Longitude::try_new`] via the `NotaTryTransparent` derive
-//! (same shape as horizon-rs's `SshPubKey`/`NixPubKey`/
-//! `WireguardPubKey`/`CriomeDomainName`). An out-of-range
-//! latitude or longitude on the wire surfaces as
-//! `nota_codec::Error::Validation { type_name, message }`,
-//! never reaches the daemon.
+//! [`Longitude::try_new`]. An out-of-range latitude or
+//! longitude on the wire surfaces as `NotaDecodeError::InvalidValue`
+//! and never reaches the daemon.
 
 use core::fmt;
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTryTransparent};
+use nota_next::{Block, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -26,10 +23,9 @@ use crate::error::{Error, Result};
 ///
 /// Construction is fallible — [`Latitude::try_new`] rejects
 /// out-of-range and non-finite inputs. The wire form is the
-/// bare degrees value; the `NotaTryTransparent` derive routes
-/// decode through `try_new`, so an invalid wire latitude is
-/// rejected at the parser boundary.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
+/// bare degrees value; decode routes through `try_new`, so an
+/// invalid wire latitude is rejected at the parser boundary.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Latitude(f64);
 
 impl Latitude {
@@ -38,11 +34,7 @@ impl Latitude {
         if degrees.is_finite() && (-90.0..=90.0).contains(&degrees) {
             Ok(Self(degrees))
         } else {
-            Err(Error::OutOfRange {
-                type_name: "Latitude",
-                valid_range: "[-90, 90]",
-                got: format!("{degrees:?}"),
-            })
+            Err(Error::OutOfRange { type_name: "Latitude", valid_range: "[-90, 90]", got: format!("{degrees:?}") })
         }
     }
 
@@ -58,8 +50,27 @@ impl fmt::Display for Latitude {
     }
 }
 
+impl From<Latitude> for f64 {
+    fn from(value: Latitude) -> Self {
+        value.0
+    }
+}
+
+impl NotaDecode for Latitude {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let degrees = f64::from_nota_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+    }
+}
+
+impl NotaEncode for Latitude {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
+    }
+}
+
 /// Longitude in degrees, in `[-180.0, 180.0]`. East is positive.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Longitude(f64);
 
 impl Longitude {
@@ -68,11 +79,7 @@ impl Longitude {
         if degrees.is_finite() && (-180.0..=180.0).contains(&degrees) {
             Ok(Self(degrees))
         } else {
-            Err(Error::OutOfRange {
-                type_name: "Longitude",
-                valid_range: "[-180, 180]",
-                got: format!("{degrees:?}"),
-            })
+            Err(Error::OutOfRange { type_name: "Longitude", valid_range: "[-180, 180]", got: format!("{degrees:?}") })
         }
     }
 
@@ -88,9 +95,28 @@ impl fmt::Display for Longitude {
     }
 }
 
+impl From<Longitude> for f64 {
+    fn from(value: Longitude) -> Self {
+        value.0
+    }
+}
+
+impl NotaDecode for Longitude {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let degrees = f64::from_nota_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+    }
+}
+
+impl NotaEncode for Longitude {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
+    }
+}
+
 /// A geographic location — latitude + longitude.
 ///
-/// `Location` derives `NotaRecord`, whose per-field decode
+/// `Location` derives `NotaDecode`, whose per-field decode
 /// delegates to each field's `NotaDecode`. With `Latitude`
 /// and `Longitude` validated on decode, `Location` inherits
 /// the validation: a `(200 -400)` frame is rejected
@@ -110,7 +136,7 @@ impl fmt::Display for Longitude {
 /// constructor — that would take two explicit objects at the
 /// boundary, against `~/primary/skills/rust-discipline.md`
 /// §"One object in, one object out".
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub latitude: Latitude,
     pub longitude: Longitude,
@@ -128,7 +154,7 @@ impl fmt::Display for Location {
 /// `geoclue2` and updates as fixes arrive. `Manual` is set
 /// by `chronos '(SetLocation …)'` and persists across
 /// restarts in the redb store.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
 pub enum LocationSource {
     /// Subscribe to `geoclue2`.
     Geoclue,

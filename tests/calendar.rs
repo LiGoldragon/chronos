@@ -2,7 +2,7 @@
 //! (`AmYear`, `OrdinalSolarTime`).
 
 use chronos::{AmYear, OrdinalSolarTime};
-use nota_codec::{Decoder, Error as NotaError, NotaDecode};
+use nota_next::{NotaDecodeError, NotaSource};
 
 // ─── AmYear ────────────────────────────────────────────────
 
@@ -59,14 +59,13 @@ fn ordinal_solar_time_from_unnormalized_degrees_converts() {
 
 #[test]
 fn ordinal_solar_time_wire_validation() {
-    let mut decoder = Decoder::new("1.5");
-    let error = OrdinalSolarTime::decode(&mut decoder).unwrap_err();
+    let error = NotaSource::new("1.5").parse::<OrdinalSolarTime>().unwrap_err();
     match error {
-        NotaError::Validation { type_name, message } => {
+        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "OrdinalSolarTime");
-            assert!(message.contains("[0, 1)"), "message was: {message}");
+            assert!(reason.contains("[0, 1)"), "message was: {reason}");
         }
-        other => panic!("expected Validation error, got {other:?}"),
+        other => panic!("expected InvalidValue error, got {other:?}"),
     }
 }
 

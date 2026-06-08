@@ -13,7 +13,7 @@
 
 use core::fmt;
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTryTransparent};
+use nota_next::{Block, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -21,7 +21,7 @@ use crate::error::{Error, Result};
 /// One of the twelve zodiac signs, in source-declaration
 /// order matching the standard zodiacal sequence (Aries first,
 /// Pisces last).
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaEnum, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ZodiacSign {
     Aries,
     Taurus,
@@ -92,7 +92,7 @@ impl fmt::Display for ZodiacSign {
 /// outside `[0, 360)`) normalises through
 /// [`EclipticLongitude::from_unnormalized_degrees`] before
 /// constructing, so the wire form is always normalised.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct EclipticLongitude(f64);
 
 impl EclipticLongitude {
@@ -129,8 +129,21 @@ impl fmt::Display for EclipticLongitude {
     }
 }
 
+impl NotaDecode for EclipticLongitude {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let degrees = f64::from_nota_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+    }
+}
+
+impl NotaEncode for EclipticLongitude {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
+    }
+}
+
 /// Degrees within a zodiacal sign, in `[0, 30)`.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ZodiacDegree(u8);
 
 impl ZodiacDegree {
@@ -139,11 +152,7 @@ impl ZodiacDegree {
         if degree < 30 {
             Ok(Self(degree))
         } else {
-            Err(Error::OutOfRange {
-                type_name: "ZodiacDegree",
-                valid_range: "[0, 30)",
-                got: format!("{degree}"),
-            })
+            Err(Error::OutOfRange { type_name: "ZodiacDegree", valid_range: "[0, 30)", got: format!("{degree}") })
         }
     }
 
@@ -153,8 +162,21 @@ impl ZodiacDegree {
     }
 }
 
+impl NotaDecode for ZodiacDegree {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let degree = u8::from_nota_block(block)?;
+        Self::try_new(degree).map_err(|error| error.into_nota_invalid_value(degree.to_string()))
+    }
+}
+
+impl NotaEncode for ZodiacDegree {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
+    }
+}
+
 /// Minutes within a zodiacal degree, in `[0, 60)`.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ZodiacMinute(u8);
 
 impl ZodiacMinute {
@@ -163,11 +185,7 @@ impl ZodiacMinute {
         if minute < 60 {
             Ok(Self(minute))
         } else {
-            Err(Error::OutOfRange {
-                type_name: "ZodiacMinute",
-                valid_range: "[0, 60)",
-                got: format!("{minute}"),
-            })
+            Err(Error::OutOfRange { type_name: "ZodiacMinute", valid_range: "[0, 60)", got: format!("{minute}") })
         }
     }
 
@@ -177,10 +195,23 @@ impl ZodiacMinute {
     }
 }
 
+impl NotaDecode for ZodiacMinute {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let minute = u8::from_nota_block(block)?;
+        Self::try_new(minute).map_err(|error| error.into_nota_invalid_value(minute.to_string()))
+    }
+}
+
+impl NotaEncode for ZodiacMinute {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
+    }
+}
+
 /// A point on the zodiac: `sign` + `degree` (0..30) + `minute`
 /// (0..60). Carried forward from the prototype's zodiacal-time
 /// output formats.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaRecord, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
 pub struct ZodiacalTime {
     pub sign: ZodiacSign,
     pub degree: ZodiacDegree,

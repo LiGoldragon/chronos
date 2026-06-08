@@ -17,7 +17,7 @@
 
 use core::fmt;
 
-use nota_codec::{NotaTransparent, NotaTryTransparent};
+use nota_next::{Block, NotaDecode, NotaDecodeError, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -26,9 +26,9 @@ use crate::error::{Error, Result};
 ///
 /// AM-year 0 is the project-defined epoch; positive years
 /// follow chronologically. Any signed integer is a valid
-/// year, so [`AmYear`] is `NotaTransparent` — no validation
+/// year, so [`AmYear`] is transparently encoded — no validation
 /// gap exists.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTransparent, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AmYear(i32);
 
 impl AmYear {
@@ -57,7 +57,7 @@ impl fmt::Display for AmYear {
 /// rejects out-of-range and non-finite inputs.
 /// [`OrdinalSolarTime::from_unnormalized_fraction`] wraps any
 /// finite input into `[0, 1)` for astronomical-pipeline use.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaTryTransparent, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct OrdinalSolarTime(f64);
 
 impl OrdinalSolarTime {
@@ -98,5 +98,18 @@ impl OrdinalSolarTime {
 impl fmt::Display for OrdinalSolarTime {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "{:.6}", self.0)
+    }
+}
+
+impl NotaDecode for OrdinalSolarTime {
+    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+        let fraction = f64::from_nota_block(block)?;
+        Self::try_new(fraction).map_err(|error| error.into_nota_invalid_value(fraction.to_string()))
+    }
+}
+
+impl NotaEncode for OrdinalSolarTime {
+    fn to_nota(&self) -> String {
+        self.0.to_nota()
     }
 }

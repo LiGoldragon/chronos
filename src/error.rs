@@ -8,12 +8,14 @@
 
 use thiserror::Error as ThisError;
 
+use nota_next::NotaDecodeError;
+
 /// The crate's error type.
 #[derive(Debug, ThisError)]
 pub enum Error {
     /// Failed to parse a NOTA document at the CLI boundary.
     #[error("nota parse failed: {0}")]
-    NotaParse(#[from] nota_codec::Error),
+    NotaParse(#[from] NotaDecodeError),
 
     /// Failed to encode or decode an rkyv archive on the wire.
     #[error("rkyv codec failed: {0}")]
@@ -42,15 +44,29 @@ pub enum Error {
     /// constraint (`"[-90, 90]"`, `"[0, 360)"`, …); `got` is the
     /// rejected value's `Display` form.
     ///
-    /// Wire-side, `NotaTryTransparent` wraps this into
-    /// `nota_codec::Error::Validation { type_name, message }`
-    /// where the message renders this variant.
+    /// Wire-side, NOTA decode wraps this into
+    /// `NotaDecodeError::InvalidValue` where the message renders
+    /// this variant.
     #[error("`{type_name}` out of range {valid_range}, got {got}")]
     OutOfRange { type_name: &'static str, valid_range: &'static str, got: String },
 
     /// The daemon refused a request.
     #[error("daemon: {message}")]
     Daemon { message: String },
+}
+
+impl Error {
+    pub fn into_nota_invalid_value(self, value: impl Into<String>) -> NotaDecodeError {
+        let value = value.into();
+        match self {
+            Self::OutOfRange { type_name, valid_range, got } => NotaDecodeError::InvalidValue {
+                type_name,
+                value,
+                reason: format!("out of range {valid_range}, got {got}"),
+            },
+            other => NotaDecodeError::InvalidValue { type_name: "ChronosValue", value, reason: other.to_string() },
+        }
+    }
 }
 
 /// Crate-local result alias.
