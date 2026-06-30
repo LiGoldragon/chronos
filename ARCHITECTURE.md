@@ -4,7 +4,42 @@ Chronos is a single user-service Rust daemon that owns the
 **local sky**: which zodiacal time it is, where the sun is,
 when the next twilight fires. It publishes typed events to
 subscribers and answers one-shot queries through the canonical
-signal pattern.
+signal pattern. Chronos is the publisher; chroma is a
+subscriber (other consumers come later).
+
+## Direction and constraints
+
+The durable direction below is the psyche-stated intent for what
+chronos should be; each item reads as a test or review seed.
+
+- **Astronomical truth is vendored, not calibrated.** The JPL
+  DE440 ephemeris (read by `anise`), NREL SPA solar position
+  (`solar-positioning`), and `hifitime` for UTC↔TT↔TDB are the
+  source of truth. No Meeus approximation, no live JPL Horizons
+  fetch, no calibration loop.
+- **The CLI takes exactly one NOTA record on argv and signals the
+  daemon.** `chronos 'GetTime'`, `chronos '(SetLocation 47.6
+  -122.3)'`. The CLI is a thin signal client for one-shot verbs;
+  consumers like chroma hold the connection open for the event
+  stream. NOTA is the only text format — JSON and `serde` appear
+  nowhere.
+- **Push, not poll.** The producer pushes events as they fire
+  (timerfd-backed deadlines); the consumer waits. There is no
+  polling loop.
+- **State is actor-owned.** Each actor is a data-bearing noun
+  with request-specific message types; raw `spawn` belongs only
+  at the runtime root.
+- **No event replay for late-joining subscribers.** Pushed events
+  are ephemeral; a subscriber that missed an event does not get a
+  replay. Subscribers receive the current state on connect, then
+  the live push stream.
+
+Scope is today, not eventually: Phase 1 owns the sun (civil dawn,
+sunrise, solar noon, sunset, civil dusk, plus zodiacal time).
+Moon, ascendant, midheaven, houses, and planetary aspects are a
+later phase (Swiss Ephemeris); cross-machine event push is later
+still (Persona fabric). Chronos is built rightly for the scope it
+serves today.
 
 ## Capability boundary
 
