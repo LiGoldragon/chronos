@@ -90,4 +90,4 @@ prompts (always `-m '<msg>'`).
 - `~/primary/skills/kameo.md` — Kameo actor runtime discipline.
 - `~/primary/repos/lore/rust/rkyv.md` — wire format discipline.
 - `~/primary/repos/signal` — canonical signal pattern reference.
-- `~/primary/repos/lojix-cli` — canonical NOTA-on-argv CLI shape.
+- `~/primary/repos/lojix` — typed NOTA client shape.

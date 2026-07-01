@@ -125,6 +125,6 @@ If a change touches one of these, it goes upstream
 - `~/primary/repos/chroma` — sibling daemon; subscribes
   to chronos's twilight events.
 - `~/primary/repos/signal` — canonical signal pattern.
-- `~/primary/repos/lojix-cli` — canonical NOTA-on-argv CLI.
+- `~/primary/repos/lojix` — typed NOTA client shape.
 - `~/primary/repos/lore/rust/rkyv.md` — wire-format
   discipline, feature pinning.
