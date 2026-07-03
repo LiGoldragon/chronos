@@ -4,7 +4,7 @@
 //! domain type.
 
 use chronos::{Latitude, Location, Longitude};
-use nota_next::{NotaDecodeError, NotaSource};
+use nota::{NotaDecodeError, NotaSource};
 
 #[test]
 fn valid_latitude_decodes_through_try_new() {

@@ -2,7 +2,7 @@
 //! module.
 
 use chronos::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};
-use nota_next::{NotaDecodeError, NotaEncode, NotaSource};
+use nota::{NotaDecodeError, NotaEncode, NotaSource};
 
 // ─── ZodiacSign ────────────────────────────────────────────
 

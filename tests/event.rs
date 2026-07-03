@@ -2,7 +2,7 @@
 //! `SolarEvent` — both wire formats (NOTA + rkyv).
 
 use chronos::{EpochTaiNanos, Latitude, Location, Longitude, SolarEvent, SolarEventKind};
-use nota_next::{NotaEncode, NotaSource};
+use nota::{NotaEncode, NotaSource};
 
 fn seattle() -> Location {
     Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() }

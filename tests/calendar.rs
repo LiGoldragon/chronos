@@ -2,7 +2,7 @@
 //! (`AmYear`, `OrdinalSolarTime`).
 
 use chronos::{AmYear, OrdinalSolarTime};
-use nota_next::{NotaDecodeError, NotaSource};
+use nota::{NotaDecodeError, NotaSource};
 
 // ─── AmYear ────────────────────────────────────────────────
 

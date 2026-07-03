@@ -12,7 +12,7 @@
 //! ramp at `CivilDusk`).
 
 use hifitime::Epoch;
-use nota_next::{NotaDecode, NotaEncode};
+use nota::{NotaDecode, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::location::Location;

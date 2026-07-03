@@ -8,7 +8,7 @@
 
 use thiserror::Error as ThisError;
 
-use nota_next::NotaDecodeError;
+use nota::NotaDecodeError;
 
 /// The crate's error type.
 #[derive(Debug, ThisError)]
