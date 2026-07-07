@@ -1,9 +1,5 @@
 # Agent instructions — chronos
 
-You **MUST** read `~/primary/AGENTS.md` and
-`~/primary/repos/lore/AGENTS.md` — the canonical workspace
-agent contract.
-
 ## Repo role
 
 Chronos is the **time-and-sky daemon**: a long-running user
@@ -19,7 +15,7 @@ twilight events and reacts; humans query chronos via NOTA-on-argv
   (`tokio::time::sleep_until`, timerfd-backed). Subscribers
   receive the current state on connect, then deltas at each
   event fire. The daemon never wakes on a clock to check
-  "did anything change?" See `~/primary/skills/push-not-pull.md`.
+  "did anything change?" See the push-not-pull discipline.
 - **Astronomy via SPICE-validated crates.** `anise` (Nyx Space)
   reads JPL DE440 directly and is validated to machine
   precision against SPICE. `hifitime` carries the time scales.
@@ -45,7 +41,7 @@ twilight events and reacts; humans query chronos via NOTA-on-argv
 
 ## Style
 
-Per `~/primary/skills/rust-discipline.md`:
+Per the Rust discipline:
 
 - Methods on types, not free functions.
 - Domain values are typed (newtypes; private fields).
@@ -53,18 +49,18 @@ Per `~/primary/skills/rust-discipline.md`:
 - Errors as a typed `Error` enum per crate via `thiserror`.
 - Tests live in `tests/`, one file per module exercised.
 - Full English words for identifiers (per
-  `~/primary/skills/naming.md`).
+  the naming discipline).
 - Type names do not carry the crate name (`Request`, not
   `ChronosRequest`). The crate name in `chronos::Request`
   is the namespace; the type name is the role.
 
-Beauty is the criterion (per `~/primary/skills/beauty.md`):
+Beauty is the criterion (per the design-quality discipline):
 ugliness is a diagnostic reading; slow down and find the
 structure that makes it beautiful.
 
 ## Version control
 
-`jj` (Jujutsu), per `~/primary/skills/jj.md`. Standard flow:
+`jj` (Jujutsu), per the Jujutsu discipline. Standard flow:
 
 ```sh
 jj commit -m '<short verb + scope>' \
@@ -77,17 +73,14 @@ prompts (always `-m '<msg>'`).
 
 ## See also
 
-- `~/primary/AGENTS.md` — workspace agent contract.
-- `~/primary/repos/lore/AGENTS.md` — canonical (cross-workspace)
-  agent contract.
-- `~/primary/repos/chroma` — sibling daemon; subscribes to
+- `chroma` — sibling daemon; subscribes to
   chronos's twilight events.
-- `~/primary/skills/rust-discipline.md` — Rust style and shape.
-- `~/primary/skills/push-not-pull.md` — subscription discipline.
-- `~/primary/skills/abstractions.md` — verb-belongs-to-noun.
-- `~/primary/skills/beauty.md` — beauty as criterion.
-- `~/primary/skills/actor-systems.md` — actor topology discipline.
-- `~/primary/skills/kameo.md` — Kameo actor runtime discipline.
-- `~/primary/repos/lore/rust/rkyv.md` — wire format discipline.
-- `~/primary/repos/signal` — canonical signal pattern reference.
-- `~/primary/repos/lojix` — typed NOTA client shape.
+- the Rust discipline — Rust style and shape.
+- the push-not-pull discipline — subscription discipline.
+- the abstractions discipline — verb-belongs-to-noun.
+- the design-quality discipline — beauty as criterion.
+- the actor-system discipline — actor topology discipline.
+- the Kameo discipline — Kameo actor runtime discipline.
+- `lore/rust/rkyv.md` — wire format discipline.
+- the `signal` repository — canonical signal pattern reference.
+- the `lojix` repository — typed NOTA client shape.
