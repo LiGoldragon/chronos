@@ -17,7 +17,7 @@
 
 use core::fmt;
 
-use nota::{Block, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -28,7 +28,9 @@ use crate::error::{Error, Result};
 /// follow chronologically. Any signed integer is a valid
 /// year, so [`AmYear`] is transparently encoded — no validation
 /// gap exists.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub struct AmYear(i32);
 
 impl AmYear {
@@ -101,15 +103,15 @@ impl fmt::Display for OrdinalSolarTime {
     }
 }
 
-impl NotaDecode for OrdinalSolarTime {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let fraction = f64::from_nota_block(block)?;
-        Self::try_new(fraction).map_err(|error| error.into_nota_invalid_value(fraction.to_string()))
+impl DotosDecode for OrdinalSolarTime {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let fraction = f64::from_dotos_block(block)?;
+        Self::try_new(fraction).map_err(|error| error.into_dotos_invalid_value(fraction.to_string()))
     }
 }
 
-impl NotaEncode for OrdinalSolarTime {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for OrdinalSolarTime {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }

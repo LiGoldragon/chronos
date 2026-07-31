@@ -11,8 +11,8 @@
 //! of these kinds and reacts (e.g. start a 60-minute warmth
 //! ramp at `CivilDusk`).
 
+use dotos::{DotosDecode, DotosEncode};
 use hifitime::Epoch;
-use nota::{NotaDecode, NotaEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::location::Location;
@@ -25,7 +25,9 @@ use crate::location::Location;
 /// names already in use must not change without a coordinated
 /// schema upgrade (per `~/primary/skills/rust-discipline.md`
 /// §"Schema discipline").
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub enum SolarEventKind {
     /// Sun's centre 6° below horizon, rising.
     CivilDawn,
@@ -44,8 +46,10 @@ pub enum SolarEventKind {
 /// [`Epoch`] for human-side use.
 ///
 /// Any signed `i64` is a valid offset, so this is
-/// transparent NOTA encoding — no validation gap.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// transparent DOTOS encoding — no validation gap.
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub struct EpochTaiNanos(i64);
 
 impl EpochTaiNanos {
@@ -67,7 +71,7 @@ impl EpochTaiNanos {
 
 /// A pushed event — what fires, when, and where the observer
 /// was when it was scheduled.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
 pub struct SolarEvent {
     pub kind: SolarEventKind,
     pub when: EpochTaiNanos,

@@ -17,11 +17,11 @@ chronos should be; each item reads as a test or review seed.
   (`solar-positioning`), and `hifitime` for UTC↔TT↔TDB are the
   source of truth. No Meeus approximation, no live JPL Horizons
   fetch, no calibration loop.
-- **The CLI takes exactly one NOTA record on argv and signals the
-  daemon.** `chronos 'GetTime'`, `chronos '(SetLocation 47.6
+- **The CLI takes exactly one DOTOS record on argv and signals the
+  daemon.** `chronos 'GetTime'`, `chronos 'SetLocation.(47.6
   -122.3)'`. The CLI is a thin signal client for one-shot verbs;
   consumers like chroma hold the connection open for the event
-  stream. NOTA is the only text format — JSON and `serde` appear
+  stream. DOTOS is the only text format — JSON and `serde` appear
   nowhere.
 - **Push, not poll.** The producer pushes events as they fire
   (timerfd-backed deadlines); the consumer waits. There is no
@@ -122,9 +122,9 @@ event stream.
 
 ## Configuration
 
-There is no NOTA config file. The two configurable values are:
+There is no DOTOS config file. The two configurable values are:
 
-- **Location** — set via `chronos '(SetLocation <lat> <lon>)'`
+- **Location** — set via `chronos 'SetLocation.(<lat> <lon>)'`
   (persisted) or auto-detected via `geoclue2` (default).
 - **Ephemeris path** — defaults to `de440s.bsp` shipped with
   the package; overridable via `CHRONOS_EPHEMERIS=<path>`.
@@ -152,10 +152,10 @@ The version-skew guard at boot hard-fails on schema mismatch.
 | Daemon ↔ disk (state) | rkyv values inside redb tables |
 | Daemon ↔ disk (ephemeris) | DE440 SPK bytes (read-only, `anise`) |
 | Daemon ↔ geoclue2 | `zbus` signal subscription |
-| Daemon ↔ human (audit) | NOTA reply printed by the CLI |
+| Daemon ↔ human (audit) | DOTOS reply printed by the CLI |
 
 JSON / `serde` appears nowhere. The only text format is
-NOTA (CLI argv + printed reply).
+DOTOS (CLI argv + printed reply).
 
 ## Out of scope (Phase 1)
 

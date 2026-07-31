@@ -2,7 +2,7 @@
 //! (`AmYear`, `OrdinalSolarTime`).
 
 use chronos::{AmYear, OrdinalSolarTime};
-use nota::{NotaDecodeError, NotaSource};
+use dotos::{DotosDecodeError, DotosSource};
 
 // ─── AmYear ────────────────────────────────────────────────
 
@@ -59,9 +59,9 @@ fn ordinal_solar_time_from_unnormalized_degrees_converts() {
 
 #[test]
 fn ordinal_solar_time_wire_validation() {
-    let error = NotaSource::new("1.5").parse::<OrdinalSolarTime>().unwrap_err();
+    let error = DotosSource::new("1.5").parse::<OrdinalSolarTime>().unwrap_err();
     match error {
-        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
+        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "OrdinalSolarTime");
             assert!(reason.contains("[0, 1)"), "message was: {reason}");
         }

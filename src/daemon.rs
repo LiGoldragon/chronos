@@ -97,6 +97,6 @@ fn dispatch_one_shot(request: Request) -> Response {
     // The skeleton answers every verb with `Error` so the
     // wire shape is exercised before the astronomy lands.
     Response::Error {
-        message: format!("not yet implemented: {}", request.to_nota().unwrap_or_else(|_| "<unrenderable>".into())),
+        message: format!("not yet implemented: {}", request.to_dotos().unwrap_or_else(|_| "<unrenderable>".into())),
     }
 }

@@ -8,14 +8,14 @@
 
 use thiserror::Error as ThisError;
 
-use nota::NotaDecodeError;
+use dotos::DotosDecodeError;
 
 /// The crate's error type.
 #[derive(Debug, ThisError)]
 pub enum Error {
-    /// Failed to parse a NOTA document at the CLI boundary.
-    #[error("nota parse failed: {0}")]
-    NotaParse(#[from] NotaDecodeError),
+    /// Failed to parse a DOTOS document at the CLI boundary.
+    #[error("dotos parse failed: {0}")]
+    DotosParse(#[from] DotosDecodeError),
 
     /// Failed to encode or decode an rkyv archive on the wire.
     #[error("rkyv codec failed: {0}")]
@@ -44,8 +44,8 @@ pub enum Error {
     /// constraint (`"[-90, 90]"`, `"[0, 360)"`, …); `got` is the
     /// rejected value's `Display` form.
     ///
-    /// Wire-side, NOTA decode wraps this into
-    /// `NotaDecodeError::InvalidValue` where the message renders
+    /// Wire-side, DOTOS decode wraps this into
+    /// `DotosDecodeError::InvalidValue` where the message renders
     /// this variant.
     #[error("`{type_name}` out of range {valid_range}, got {got}")]
     OutOfRange { type_name: &'static str, valid_range: &'static str, got: String },
@@ -56,15 +56,15 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn into_nota_invalid_value(self, value: impl Into<String>) -> NotaDecodeError {
+    pub fn into_dotos_invalid_value(self, value: impl Into<String>) -> DotosDecodeError {
         let value = value.into();
         match self {
-            Self::OutOfRange { type_name, valid_range, got } => NotaDecodeError::InvalidValue {
+            Self::OutOfRange { type_name, valid_range, got } => DotosDecodeError::InvalidValue {
                 type_name,
                 value,
                 reason: format!("out of range {valid_range}, got {got}"),
             },
-            other => NotaDecodeError::InvalidValue { type_name: "ChronosValue", value, reason: other.to_string() },
+            other => DotosDecodeError::InvalidValue { type_name: "ChronosValue", value, reason: other.to_string() },
         }
     }
 }

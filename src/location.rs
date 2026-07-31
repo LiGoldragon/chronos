@@ -9,12 +9,12 @@
 //!
 //! Wire decoding routes through [`Latitude::try_new`] /
 //! [`Longitude::try_new`]. An out-of-range latitude or
-//! longitude on the wire surfaces as `NotaDecodeError::InvalidValue`
+//! longitude on the wire surfaces as `DotosDecodeError::InvalidValue`
 //! and never reaches the daemon.
 
 use core::fmt;
 
-use nota::{Block, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -56,16 +56,16 @@ impl From<Latitude> for f64 {
     }
 }
 
-impl NotaDecode for Latitude {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let degrees = f64::from_nota_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+impl DotosDecode for Latitude {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let degrees = f64::from_dotos_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
     }
 }
 
-impl NotaEncode for Latitude {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for Latitude {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -101,23 +101,23 @@ impl From<Longitude> for f64 {
     }
 }
 
-impl NotaDecode for Longitude {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let degrees = f64::from_nota_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+impl DotosDecode for Longitude {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let degrees = f64::from_dotos_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
     }
 }
 
-impl NotaEncode for Longitude {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for Longitude {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
 /// A geographic location — latitude + longitude.
 ///
-/// `Location` derives `NotaDecode`, whose per-field decode
-/// delegates to each field's `NotaDecode`. With `Latitude`
+/// `Location` derives `DotosDecode`, whose per-field decode
+/// delegates to each field's `DotosDecode`. With `Latitude`
 /// and `Longitude` validated on decode, `Location` inherits
 /// the validation: a `(200 -400)` frame is rejected
 /// at the latitude field before any `Location` is constructed.
@@ -136,7 +136,7 @@ impl NotaEncode for Longitude {
 /// constructor — that would take two explicit objects at the
 /// boundary, against `~/primary/skills/rust-discipline.md`
 /// §"One object in, one object out".
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub latitude: Latitude,
     pub longitude: Longitude,
@@ -154,7 +154,7 @@ impl fmt::Display for Location {
 /// `geoclue2` and updates as fixes arrive. `Manual` is set
 /// by `chronos '(SetLocation …)'` and persists across
 /// restarts in the redb store.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
 pub enum LocationSource {
     /// Subscribe to `geoclue2`.
     Geoclue,

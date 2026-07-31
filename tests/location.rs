@@ -1,22 +1,22 @@
 //! Pins the wire-validation contract for [`Latitude`] and
 //! [`Longitude`] — decode rejects out-of-range values with
-//! `NotaDecodeError::InvalidValue` before constructing the
+//! `DotosDecodeError::InvalidValue` before constructing the
 //! domain type.
 
 use chronos::{Latitude, Location, Longitude};
-use nota::{NotaDecodeError, NotaSource};
+use dotos::{DotosDecodeError, DotosSource};
 
 #[test]
 fn valid_latitude_decodes_through_try_new() {
-    let value = NotaSource::new("47.6").parse::<Latitude>().unwrap();
+    let value = DotosSource::new("47.6").parse::<Latitude>().unwrap();
     assert_eq!(value, Latitude::try_new(47.6).unwrap());
 }
 
 #[test]
 fn out_of_range_latitude_rejected_at_wire() {
-    let error = NotaSource::new("200.0").parse::<Latitude>().unwrap_err();
+    let error = DotosSource::new("200.0").parse::<Latitude>().unwrap_err();
     match error {
-        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
+        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "Latitude");
             assert!(reason.contains("[-90, 90]"), "message was: {reason}");
         }
@@ -26,9 +26,9 @@ fn out_of_range_latitude_rejected_at_wire() {
 
 #[test]
 fn out_of_range_longitude_rejected_at_wire() {
-    let error = NotaSource::new("-400.0").parse::<Longitude>().unwrap_err();
+    let error = DotosSource::new("-400.0").parse::<Longitude>().unwrap_err();
     match error {
-        NotaDecodeError::InvalidValue { type_name, reason, .. } => {
+        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
             assert_eq!(type_name, "Longitude");
             assert!(reason.contains("[-180, 180]"), "message was: {reason}");
         }
@@ -81,12 +81,12 @@ fn from_self_for_inner_is_emitted_for_latitude() {
 #[test]
 fn location_decode_propagates_field_validation() {
     // (200.0 0.0) — invalid latitude inside an
-    // otherwise-valid Location record. NotaDecode delegates
+    // otherwise-valid Location record. DotosDecode delegates
     // per-field decode, so the latitude field's constructor
     // validation surfaces before any Location is constructed.
-    let error = NotaSource::new("(200.0 0.0)").parse::<Location>().unwrap_err();
+    let error = DotosSource::new("{200.0 0.0}").parse::<Location>().unwrap_err();
     match error {
-        NotaDecodeError::InvalidValue { type_name, .. } => {
+        DotosDecodeError::InvalidValue { type_name, .. } => {
             assert_eq!(type_name, "Latitude");
         }
         other => panic!("expected InvalidValue error from latitude field, got {other:?}"),

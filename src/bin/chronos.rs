@@ -1,9 +1,9 @@
 //! `chronos` — CLI client.
 //!
-//! Parses a single NOTA record from argv, archives it as a
+//! Parses a single DOTOS record from argv, archives it as a
 //! [`chronos::Request`], sends it length-prefixed over the
 //! daemon's UDS at `/run/chronos/<uid>.sock`, reads a length-
-//! prefixed [`chronos::Response`], and prints it as NOTA.
+//! prefixed [`chronos::Response`], and prints it as DOTOS.
 
 fn main() -> chronos::Result<()> {
     let mut args = std::env::args().skip(1);
@@ -14,8 +14,8 @@ fn main() -> chronos::Result<()> {
         std::process::exit(2);
     });
 
-    let request = chronos::Request::from_nota(&request_text)?;
+    let request = chronos::Request::from_dotos(&request_text)?;
     let response = chronos::client::send(&request)?;
-    println!("{}", response.to_nota()?);
+    println!("{}", response.to_dotos()?);
     Ok(())
 }

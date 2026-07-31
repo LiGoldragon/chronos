@@ -32,8 +32,8 @@ chronos '(SetLocation 47.6 -122.3)'  # manual location override
 **Long-lived subscription** for chroma + future consumers:
 open the UDS, send
 
-```nota
-(Subscribe (CivilDawn Sunrise Sunset CivilDusk))
+```dotos
+Subscribe.([CivilDawn Sunrise Sunset CivilDusk])
 ```
 
 and receive each event as it fires. The producer pushes;

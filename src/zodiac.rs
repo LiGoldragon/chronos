@@ -13,7 +13,7 @@
 
 use core::fmt;
 
-use nota::{Block, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -21,7 +21,9 @@ use crate::error::{Error, Result};
 /// One of the twelve zodiac signs, in source-declaration
 /// order matching the standard zodiacal sequence (Aries first,
 /// Pisces last).
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
+)]
 pub enum ZodiacSign {
     Aries,
     Taurus,
@@ -129,16 +131,16 @@ impl fmt::Display for EclipticLongitude {
     }
 }
 
-impl NotaDecode for EclipticLongitude {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let degrees = f64::from_nota_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_nota_invalid_value(degrees.to_string()))
+impl DotosDecode for EclipticLongitude {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let degrees = f64::from_dotos_block(block)?;
+        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
     }
 }
 
-impl NotaEncode for EclipticLongitude {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for EclipticLongitude {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -162,16 +164,16 @@ impl ZodiacDegree {
     }
 }
 
-impl NotaDecode for ZodiacDegree {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let degree = u8::from_nota_block(block)?;
-        Self::try_new(degree).map_err(|error| error.into_nota_invalid_value(degree.to_string()))
+impl DotosDecode for ZodiacDegree {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let degree = u8::from_dotos_block(block)?;
+        Self::try_new(degree).map_err(|error| error.into_dotos_invalid_value(degree.to_string()))
     }
 }
 
-impl NotaEncode for ZodiacDegree {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for ZodiacDegree {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -195,23 +197,23 @@ impl ZodiacMinute {
     }
 }
 
-impl NotaDecode for ZodiacMinute {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
-        let minute = u8::from_nota_block(block)?;
-        Self::try_new(minute).map_err(|error| error.into_nota_invalid_value(minute.to_string()))
+impl DotosDecode for ZodiacMinute {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
+        let minute = u8::from_dotos_block(block)?;
+        Self::try_new(minute).map_err(|error| error.into_dotos_invalid_value(minute.to_string()))
     }
 }
 
-impl NotaEncode for ZodiacMinute {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for ZodiacMinute {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
 /// A point on the zodiac: `sign` + `degree` (0..30) + `minute`
 /// (0..60). Carried forward from the prototype's zodiacal-time
 /// output formats.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, NotaDecode, NotaEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
 pub struct ZodiacalTime {
     pub sign: ZodiacSign,
     pub degree: ZodiacDegree,

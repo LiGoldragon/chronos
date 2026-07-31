@@ -34,10 +34,10 @@ report, not a pull request.
    planet positions). `anise` reads it; chronos consumes
    `anise`.
 
-2. **rkyv on the wire, NOTA at the human boundary.** Daemon
+2. **rkyv on the wire, DOTOS at the human boundary.** Daemon
    ↔ CLI / chroma is the signal pattern (length-prefixed
-   rkyv frames over UDS). NOTA appears only on the CLI argv
-   and the printed reply. The daemon never re-parses NOTA
+   rkyv frames over UDS). DOTOS appears only on the CLI argv
+   and the printed reply. The daemon never re-parses DOTOS
    from a request frame.
 
 3. **Push, not poll.** Event fires are
@@ -125,6 +125,6 @@ If a change touches one of these, it goes upstream
 - `~/primary/repos/chroma` — sibling daemon; subscribes
   to chronos's twilight events.
 - `~/primary/repos/signal` — canonical signal pattern.
-- `~/primary/repos/lojix` — typed NOTA client shape.
+- `~/primary/repos/lojix` — typed DOTOS client shape.
 - `~/primary/repos/lore/rust/rkyv.md` — wire-format
   discipline, feature pinning.

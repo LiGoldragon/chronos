@@ -1,19 +1,19 @@
 //! Round-trip tests for the [`chronos::Response`] enum.
 //!
 //! Every variant must survive both wire formats:
-//! NOTA (the daemon's reply-rendering path) and rkyv (the
+//! DOTOS (the daemon's reply-rendering path) and rkyv (the
 //! UDS frame path). The CLI's print loop renders responses
-//! as NOTA, so any breakage here breaks `chronos 'GetTime'`.
+//! as DOTOS, so any breakage here breaks `chronos 'GetTime'`.
 
 use chronos::{
     EclipticLongitude, EpochTaiNanos, Latitude, Location, LocationSource, Longitude, Response, SolarEvent,
     SolarEventKind, ZodiacalTime,
 };
 
-fn round_trip_nota(response: &Response) -> Response {
-    let text = response.to_nota().expect("nota encode");
-    let again = Response::from_nota(&text).expect("nota decode");
-    assert_eq!(*response, again, "nota round-trip changed value via text {text:?}");
+fn round_trip_dotos(response: &Response) -> Response {
+    let text = response.to_dotos().expect("dotos encode");
+    let again = Response::from_dotos(&text).expect("dotos decode");
+    assert_eq!(*response, again, "dotos round-trip changed value via text {text:?}");
     again
 }
 
@@ -30,7 +30,7 @@ fn seattle() -> Location {
 #[test]
 fn acked() {
     let response = Response::Acked;
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
@@ -38,7 +38,7 @@ fn acked() {
 fn time() {
     let response =
         Response::Time { zodiacal_time: ZodiacalTime::from_longitude(EclipticLongitude::try_new(45.0).unwrap()) };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
@@ -58,21 +58,21 @@ fn schedule_with_two_events() {
             },
         ],
     };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn schedule_empty() {
     let response = Response::Schedule { events: vec![] };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn location() {
     let response = Response::Location { location: seattle(), source: LocationSource::Manual };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
@@ -85,21 +85,21 @@ fn event() {
             location: seattle(),
         },
     };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn error_message() {
     let response = Response::Error { message: "ephemeris file not found".into() };
-    round_trip_nota(&response);
+    round_trip_dotos(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn error_messages_with_apostrophes_do_not_require_quote_delimiters() {
     let response = Response::Error { message: "sky's ephemeris is missing".into() };
-    let text = response.to_nota().expect("nota encode");
-    assert_eq!(text, "(Error [sky's ephemeris is missing])");
-    assert_eq!(Response::from_nota(&text).expect("nota decode"), response);
+    let text = response.to_dotos().expect("dotos encode");
+    assert_eq!(text, "Error.((sky's ephemeris is missing))");
+    assert_eq!(Response::from_dotos(&text).expect("dotos decode"), response);
 }

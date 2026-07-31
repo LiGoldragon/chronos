@@ -5,7 +5,7 @@
 //! subscriber receives one `Event` frame per fire on a long-
 //! lived connection.
 
-use nota::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode, NotaSource};
+use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode, DotosSource};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -36,14 +36,14 @@ pub enum Response {
 }
 
 impl Response {
-    /// Parse a single NOTA record into a typed response.
-    pub fn from_nota(text: &str) -> Result<Self> {
-        Ok(NotaSource::new(text).parse::<Self>()?)
+    /// Parse a single DOTOS record into a typed response.
+    pub fn from_dotos(text: &str) -> Result<Self> {
+        Ok(DotosSource::new(text).parse::<Self>()?)
     }
 
-    /// Render this response as a NOTA record.
-    pub fn to_nota(&self) -> Result<String> {
-        Ok(NotaEncode::to_nota(self))
+    /// Render this response as a DOTOS record.
+    pub fn to_dotos(&self) -> Result<String> {
+        Ok(DotosEncode::to_dotos(self))
     }
 
     /// Archive into rkyv bytes for the wire.
@@ -62,71 +62,70 @@ impl Response {
         tag: &'static str,
         payload: &[Block],
         expected: usize,
-    ) -> core::result::Result<(), NotaDecodeError> {
+    ) -> core::result::Result<(), DotosDecodeError> {
         if payload.len() == expected {
             Ok(())
         } else {
-            Err(NotaDecodeError::ExpectedRootCount { type_name: tag, expected, found: payload.len() })
+            Err(DotosDecodeError::ExpectedRootCount { type_name: tag, expected, found: payload.len() })
         }
     }
 }
 
-impl NotaDecode for Response {
-    fn from_nota_block(block: &Block) -> core::result::Result<Self, NotaDecodeError> {
+impl DotosDecode for Response {
+    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
         if let Some(tag) = block.demote_to_string() {
             return match tag {
                 "Acked" => Ok(Self::Acked),
-                other => Err(NotaDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
+                other => Err(DotosDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
             };
         }
 
-        let children = NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "Response")?;
-        let (tag, payload) = children.split_first().ok_or(NotaDecodeError::ExpectedRootCount {
+        let (head, payload) = block.as_application().ok_or(DotosDecodeError::ExpectedDelimited {
             type_name: "Response",
-            expected: 1,
-            found: 0,
+            delimiter: "Response.(payload) application",
         })?;
-        let tag = tag.demote_to_string().ok_or(NotaDecodeError::ExpectedAtom { type_name: "Response variant" })?;
+        let tag = head.demote_to_string().ok_or(DotosDecodeError::ExpectedAtom { type_name: "Response variant" })?;
+        let payload = DotosBlock::new(payload).expect_delimited(Delimiter::Parenthesis, "Response")?;
         match tag {
             "Time" => {
                 Self::expect_payload_count("Time", payload, 1)?;
-                Ok(Self::Time { zodiacal_time: ZodiacalTime::from_nota_block(&payload[0])? })
+                Ok(Self::Time { zodiacal_time: ZodiacalTime::from_dotos_block(&payload[0])? })
             }
             "Schedule" => {
                 Self::expect_payload_count("Schedule", payload, 1)?;
-                Ok(Self::Schedule { events: Vec::<SolarEvent>::from_nota_block(&payload[0])? })
+                Ok(Self::Schedule { events: Vec::<SolarEvent>::from_dotos_block(&payload[0])? })
             }
             "Location" => {
                 Self::expect_payload_count("Location", payload, 2)?;
                 Ok(Self::Location {
-                    location: Location::from_nota_block(&payload[0])?,
-                    source: LocationSource::from_nota_block(&payload[1])?,
+                    location: Location::from_dotos_block(&payload[0])?,
+                    source: LocationSource::from_dotos_block(&payload[1])?,
                 })
             }
             "Event" => {
                 Self::expect_payload_count("Event", payload, 1)?;
-                Ok(Self::Event { event: SolarEvent::from_nota_block(&payload[0])? })
+                Ok(Self::Event { event: SolarEvent::from_dotos_block(&payload[0])? })
             }
             "Error" => {
                 Self::expect_payload_count("Error", payload, 1)?;
-                Ok(Self::Error { message: String::from_nota_block(&payload[0])? })
+                Ok(Self::Error { message: String::from_dotos_block(&payload[0])? })
             }
-            other => Err(NotaDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
+            other => Err(DotosDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
         }
     }
 }
 
-impl NotaEncode for Response {
-    fn to_nota(&self) -> String {
+impl DotosEncode for Response {
+    fn to_dotos(&self) -> String {
         match self {
             Self::Acked => "Acked".to_owned(),
-            Self::Time { zodiacal_time } => Delimiter::Parenthesis.wrap(["Time".to_owned(), zodiacal_time.to_nota()]),
-            Self::Schedule { events } => Delimiter::Parenthesis.wrap(["Schedule".to_owned(), events.to_nota()]),
+            Self::Time { zodiacal_time } => format!("Time.{}", Delimiter::Parenthesis.wrap([zodiacal_time.to_dotos()])),
+            Self::Schedule { events } => format!("Schedule.{}", Delimiter::Parenthesis.wrap([events.to_dotos()])),
             Self::Location { location, source } => {
-                Delimiter::Parenthesis.wrap(["Location".to_owned(), location.to_nota(), source.to_nota()])
+                format!("Location.{}", Delimiter::Parenthesis.wrap([location.to_dotos(), source.to_dotos()]))
             }
-            Self::Event { event } => Delimiter::Parenthesis.wrap(["Event".to_owned(), event.to_nota()]),
-            Self::Error { message } => Delimiter::Parenthesis.wrap(["Error".to_owned(), message.to_nota()]),
+            Self::Event { event } => format!("Event.{}", Delimiter::Parenthesis.wrap([event.to_dotos()])),
+            Self::Error { message } => format!("Error.{}", Delimiter::Parenthesis.wrap([message.to_dotos()])),
         }
     }
 }

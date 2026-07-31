@@ -19,8 +19,8 @@ name = "chronos-daemon"
 path = "src/bin/chronos_daemon.rs"
 
 [dependencies]
-# Wire & NOTA — same shape as chroma
-nota = { git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
+# Wire & DOTOS — same shape as chroma
+dotos = { git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3cf547d2624c6a243e5de5f85c9f3" }
 rkyv       = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror  = "2"
 tokio      = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "signal", "sync", "time"] }
