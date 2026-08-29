@@ -1,8 +1,8 @@
 //! Round-trip + validation tests for `SolarEventKind` and
-//! `SolarEvent` — both wire formats (DOTOS + rkyv).
+//! `SolarEvent` — both Datomic and rkyv wire formats.
 
 use chronos::{EpochTaiNanos, Latitude, Location, Longitude, SolarEvent, SolarEventKind};
-use dotos::{DotosEncode, DotosSource};
+use datomic::{Datomic, Text, TextEdge};
 
 fn seattle() -> Location {
     Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() }
@@ -32,7 +32,7 @@ fn every_solar_event_kind_is_unique() {
 }
 
 #[test]
-fn solar_event_kind_dotos_round_trips_for_every_variant() {
+fn solar_event_kind_datomic_round_trips_for_every_variant() {
     for kind in [
         SolarEventKind::CivilDawn,
         SolarEventKind::Sunrise,
@@ -40,8 +40,8 @@ fn solar_event_kind_dotos_round_trips_for_every_variant() {
         SolarEventKind::Sunset,
         SolarEventKind::CivilDusk,
     ] {
-        let text = kind.to_dotos();
-        let decoded = DotosSource::new(&text).parse::<SolarEventKind>().expect("decode");
+        let text = kind.textualize();
+        let decoded = Text::<SolarEventKind>::from(text.as_ref()).embody().expect("embody");
         assert_eq!(decoded, kind, "round-trip changed {kind:?} via text {text:?}");
     }
 }
@@ -55,10 +55,10 @@ fn solar_event_archives_round_trip() {
 }
 
 #[test]
-fn solar_event_dotos_round_trip() {
+fn solar_event_datomic_round_trip() {
     let event = sample_event(SolarEventKind::CivilDusk);
-    let text = event.to_dotos();
-    let decoded = DotosSource::new(&text).parse::<SolarEvent>().expect("decode");
+    let text = event.textualize();
+    let decoded = Text::<SolarEvent>::from(text.as_ref()).embody().expect("embody");
     assert_eq!(decoded, event);
 }
 

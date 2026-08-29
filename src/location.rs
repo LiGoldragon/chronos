@@ -9,12 +9,13 @@
 //!
 //! Wire decoding routes through [`Latitude::try_new`] /
 //! [`Longitude::try_new`]. An out-of-range latitude or
-//! longitude on the wire surfaces as `DotosDecodeError::InvalidValue`
+//! longitude at the typed Datomic edge is refused before reaching the daemon.
 //! and never reaches the daemon.
 
 use core::fmt;
 
-use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DecimalViewing, Fault, FaultProblem, FiniteDecimal, PortionBuilding, PortionViewing};
+use protos::{Portion, StructuralEnclosure};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -56,16 +57,13 @@ impl From<Latitude> for f64 {
     }
 }
 
-impl DotosDecode for Latitude {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let degrees = f64::from_dotos_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
+impl Datomic for Latitude {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        Self::try_new(FiniteDecimal::embody(portion)?.value()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosEncode for Latitude {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        FiniteDecimal::try_from(self.0).expect("Latitude is finite").portion()
     }
 }
 
@@ -101,24 +99,21 @@ impl From<Longitude> for f64 {
     }
 }
 
-impl DotosDecode for Longitude {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let degrees = f64::from_dotos_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
+impl Datomic for Longitude {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        Self::try_new(FiniteDecimal::embody(portion)?.value()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosEncode for Longitude {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        FiniteDecimal::try_from(self.0).expect("Longitude is finite").portion()
     }
 }
 
 /// A geographic location — latitude + longitude.
 ///
-/// `Location` derives `DotosDecode`, whose per-field decode
-/// delegates to each field's `DotosDecode`. With `Latitude`
-/// and `Longitude` validated on decode, `Location` inherits
+/// `Location` embodies one braced Portion whose field embodiment
+/// delegates to `Latitude` and `Longitude`. With both domain
+/// values validated at the typed edge, `Location` inherits
 /// the validation: a `(200 -400)` frame is rejected
 /// at the latitude field before any `Location` is constructed.
 ///
@@ -136,7 +131,7 @@ impl DotosEncode for Longitude {
 /// constructor — that would take two explicit objects at the
 /// boundary, against `~/primary/skills/rust-discipline.md`
 /// §"One object in, one object out".
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Location {
     pub latitude: Latitude,
     pub longitude: Longitude,
@@ -148,16 +143,49 @@ impl fmt::Display for Location {
     }
 }
 
+impl Datomic for Location {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [latitude, longitude] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self { latitude: Latitude::embody(latitude)?, longitude: Longitude::embody(longitude)? })
+    }
+
+    fn portion(&self) -> Portion {
+        "".structural(StructuralEnclosure::Braced, vec![self.latitude.portion(), self.longitude.portion()])
+    }
+}
+
 /// Where the daemon's authoritative [`Location`] comes from.
 ///
 /// `Geoclue` is the default — the daemon subscribes to
 /// `geoclue2` and updates as fixes arrive. `Manual` is set
 /// by `chronos '(SetLocation …)'` and persists across
 /// restarts in the redb store.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub enum LocationSource {
     /// Subscribe to `geoclue2`.
     Geoclue,
     /// Use the persisted manual override.
     Manual,
+}
+
+impl Datomic for LocationSource {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        match portion.bare_symbol() {
+            Some("Geoclue") => Ok(Self::Geoclue),
+            Some("Manual") => Ok(Self::Manual),
+            _ => Err(portion.fault(FaultProblem::Shape)),
+        }
+    }
+
+    fn portion(&self) -> Portion {
+        match self {
+            Self::Geoclue => "Geoclue".bare(),
+            Self::Manual => "Manual".bare(),
+        }
+    }
 }

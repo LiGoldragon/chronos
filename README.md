@@ -26,14 +26,14 @@ no calibration loop, no live JPL Horizons fetch.
 ```sh
 chronos 'GetTime'                    # current zodiacal time
 chronos 'GetSchedule'                # today's sunrise/sunset/twilights
-chronos '(SetLocation 47.6 -122.3)'  # manual location override
+chronos 'SetLocation.{47.6 -122.3}'  # manual location override
 ```
 
 **Long-lived subscription** for chroma + future consumers:
 open the UDS, send
 
-```dotos
-Subscribe.([CivilDawn Sunrise Sunset CivilDusk])
+```text
+Subscribe.{[CivilDawn Sunrise Sunset CivilDusk]}
 ```
 
 and receive each event as it fires. The producer pushes;

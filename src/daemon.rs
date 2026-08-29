@@ -4,7 +4,7 @@
 //!
 //! - the redb store (one row: `LocationSource`);
 //! - the [`Sky`](crate::sky::Sky) loader (DE440 via `anise`);
-//! - the [`LocationTracker`] (zbus to `geoclue2` or persisted
+//! - the LocationTracker (zbus to `geoclue2` or persisted
 //!   manual override);
 //! - the `EventScheduler` (next-fire deadline per kind,
 //!   `tokio::time::sleep_until`-driven; per
@@ -21,7 +21,7 @@ use tokio::net::{UnixListener, UnixStream};
 
 use crate::error::Result;
 use crate::request::Request;
-use crate::response::Response;
+use crate::response::{ErrorMessage, Response};
 use crate::wire::{read_frame, socket_path, write_frame};
 
 /// Run the daemon until SIGTERM / Ctrl-C.
@@ -77,7 +77,7 @@ async fn serve_connection(mut stream: UnixStream) -> Result<()> {
             // ~/primary/skills/push-not-pull.md §"Subscription
             // contract" — emit current schedule first, then
             // deltas at deadline fires.
-            let response = Response::Error { message: "Subscribe not yet implemented".into() };
+            let response = Response::Error { message: ErrorMessage::try_new("Subscribe not yet implemented".into())? };
             let archive = response.archive()?;
             write_frame(&mut stream, &archive).await?;
         }
@@ -97,6 +97,7 @@ fn dispatch_one_shot(request: Request) -> Response {
     // The skeleton answers every verb with `Error` so the
     // wire shape is exercised before the astronomy lands.
     Response::Error {
-        message: format!("not yet implemented: {}", request.to_dotos().unwrap_or_else(|_| "<unrenderable>".into())),
+        message: ErrorMessage::try_new(format!("not yet implemented: {}", request.to_text()))
+            .expect("a canonical Request produces representable diagnostic text"),
     }
 }

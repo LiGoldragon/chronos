@@ -17,11 +17,11 @@ chronos should be; each item reads as a test or review seed.
   (`solar-positioning`), and `hifitime` for UTC↔TT↔TDB are the
   source of truth. No Meeus approximation, no live JPL Horizons
   fetch, no calibration loop.
-- **The CLI takes exactly one DOTOS record on argv and signals the
-  daemon.** `chronos 'GetTime'`, `chronos 'SetLocation.(47.6
-  -122.3)'`. The CLI is a thin signal client for one-shot verbs;
+- **The CLI takes exactly one typed Datomic value on argv and signals the
+  daemon.** `chronos 'GetTime'`, `chronos 'SetLocation.{47.6
+  -122.3}'`. The CLI is a thin signal client for one-shot verbs;
   consumers like chroma hold the connection open for the event
-  stream. DOTOS is the only text format — JSON and `serde` appear
+  stream. Datomic is the only text format — JSON and `serde` appear
   nowhere.
 - **Push, not poll.** The producer pushes events as they fire
   (timerfd-backed deadlines); the consumer waits. There is no
@@ -122,9 +122,9 @@ event stream.
 
 ## Configuration
 
-There is no DOTOS config file. The two configurable values are:
+There is no text config file. The two configurable values are:
 
-- **Location** — set via `chronos 'SetLocation.(<lat> <lon>)'`
+- **Location** — set via `chronos 'SetLocation.{<lat> <lon>}'`
   (persisted) or auto-detected via `geoclue2` (default).
 - **Ephemeris path** — defaults to `de440s.bsp` shipped with
   the package; overridable via `CHRONOS_EPHEMERIS=<path>`.
@@ -139,9 +139,9 @@ current time + DE440 ⇒ everything else.
 | Table | Key | Value |
 |---|---|---|
 | `location` | fixed slot `source` | rkyv archive of `LocationSource` |
-| `meta` | fixed slot `version` | `(schema_version, wire_version)` |
+| `meta` | fixed slot `version` | `(contract_version, wire_version)` |
 
-The version-skew guard at boot hard-fails on schema mismatch.
+The version-skew guard at boot hard-fails on contract mismatch.
 
 ## Boundary contracts
 
@@ -152,10 +152,10 @@ The version-skew guard at boot hard-fails on schema mismatch.
 | Daemon ↔ disk (state) | rkyv values inside redb tables |
 | Daemon ↔ disk (ephemeris) | DE440 SPK bytes (read-only, `anise`) |
 | Daemon ↔ geoclue2 | `zbus` signal subscription |
-| Daemon ↔ human (audit) | DOTOS reply printed by the CLI |
+| Daemon ↔ human (audit) | canonical Datomic reply printed by the CLI |
 
-JSON / `serde` appears nowhere. The only text format is
-DOTOS (CLI argv + printed reply).
+JSON / `serde` appears nowhere. The only text format is canonical
+Datomic (CLI argv + printed reply).
 
 ## Out of scope (Phase 1)
 

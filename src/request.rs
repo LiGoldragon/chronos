@@ -1,127 +1,99 @@
-//! [`Request`] — what the CLI / chroma sends to the daemon.
-//!
-//! Parses from a single DOTOS record on argv (the CLI's one
-//! positional arg). Travels on the wire as a length-prefixed
-//! rkyv archive over the daemon's UDS.
+//! The typed Datomic request accepted at Chronos's CLI boundary.
 
-use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode, DotosSource};
+use datomic::{Datomic, Fault, FaultProblem, PortionBuilding, PortionViewing, Text, TextEdge};
+use protos::{Portion, Separator, StructuralEnclosure};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
-use crate::error::{Error, Result};
-use crate::event::SolarEventKind;
-use crate::location::{Latitude, Longitude};
+use crate::{
+    error::{Error, Result},
+    event::SolarEventKind,
+    location::{Latitude, Longitude},
+};
 
-/// What the CLI / a subscriber sends to the daemon.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq)]
 pub enum Request {
-    /// Read the current zodiacal time.
     GetTime,
-
-    /// Read today's full solar schedule (CivilDawn → CivilDusk).
     GetSchedule,
-
-    /// Read the daemon's current authoritative location.
     GetLocation,
-
-    /// Override location manually (persists across restarts).
-    /// Switches `LocationSource` to `Manual`.
     SetLocation { latitude: Latitude, longitude: Longitude },
-
-    /// Switch back to `Geoclue`-driven location.
     UseGeoclue,
-
-    /// Open a long-lived event stream. The daemon replies
-    /// with one frame per event of the requested kinds, in
-    /// arrival order. The stream begins with the upcoming
-    /// fires of each requested kind for the current civil
-    /// day (the "current state" required by
-    /// `~/primary/skills/push-not-pull.md` §"Subscription
-    /// contract").
     Subscribe { kinds: Vec<SolarEventKind> },
 }
 
 impl Request {
-    /// Parse a single DOTOS record into a typed request.
-    pub fn from_dotos(text: &str) -> Result<Self> {
-        Ok(DotosSource::new(text).parse::<Self>()?)
+    pub fn from_text(source: &str) -> Result<Self> {
+        Text::<Self>::from(source).embody().map_err(|fault| Error::from_fault("Request", fault))
     }
 
-    /// Render this request as a DOTOS record.
-    pub fn to_dotos(&self) -> Result<String> {
-        Ok(DotosEncode::to_dotos(self))
+    pub fn to_text(&self) -> String {
+        self.textualize().as_ref().to_owned()
     }
 
-    /// Archive into rkyv bytes for the wire.
     pub fn archive(&self) -> Result<Vec<u8>> {
         rkyv::to_bytes::<rkyv::rancor::Error>(self)
             .map(|bytes| bytes.to_vec())
-            .map_err(|err| Error::RkyvCodec(err.to_string()))
+            .map_err(|error| Error::RkyvCodec(error.to_string()))
     }
 
-    /// Reconstruct from an rkyv archive coming off the wire.
     pub fn from_archive(bytes: &[u8]) -> Result<Self> {
-        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|err| Error::RkyvCodec(err.to_string()))
-    }
-
-    fn expect_payload_count(
-        tag: &'static str,
-        payload: &[Block],
-        expected: usize,
-    ) -> core::result::Result<(), DotosDecodeError> {
-        if payload.len() == expected {
-            Ok(())
-        } else {
-            Err(DotosDecodeError::ExpectedRootCount { type_name: tag, expected, found: payload.len() })
-        }
+        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|error| Error::RkyvCodec(error.to_string()))
     }
 }
 
-impl DotosDecode for Request {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        if let Some(tag) = block.demote_to_string() {
-            return match tag {
-                "GetTime" => Ok(Self::GetTime),
-                "GetSchedule" => Ok(Self::GetSchedule),
-                "GetLocation" => Ok(Self::GetLocation),
-                "UseGeoclue" => Ok(Self::UseGeoclue),
-                other => Err(DotosDecodeError::UnknownVariant { enum_name: "Request", variant: other.to_owned() }),
-            };
+impl Datomic for Request {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        match portion.bare_symbol() {
+            Some("GetTime") => return Ok(Self::GetTime),
+            Some("GetSchedule") => return Ok(Self::GetSchedule),
+            Some("GetLocation") => return Ok(Self::GetLocation),
+            Some("UseGeoclue") => return Ok(Self::UseGeoclue),
+            _ => {}
         }
-
-        let (head, payload) = block.as_application().ok_or(DotosDecodeError::ExpectedDelimited {
-            type_name: "Request",
-            delimiter: "Request.(payload) application",
-        })?;
-        let tag = head.demote_to_string().ok_or(DotosDecodeError::ExpectedAtom { type_name: "Request variant" })?;
-        let payload = DotosBlock::new(payload).expect_delimited(Delimiter::Parenthesis, "Request")?;
-        match tag {
+        let Some(headed) = portion.headed() else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        if headed.separator != Separator::Period {
+            return Err(portion.fault(FaultProblem::Shape));
+        }
+        match headed.head.as_ref() {
             "SetLocation" => {
-                Self::expect_payload_count("SetLocation", payload, 2)?;
+                let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
+                    return Err(headed.body.fault(FaultProblem::Shape));
+                };
+                let [latitude, longitude] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
                 Ok(Self::SetLocation {
-                    latitude: Latitude::from_dotos_block(&payload[0])?,
-                    longitude: Longitude::from_dotos_block(&payload[1])?,
+                    latitude: Latitude::embody(latitude)?,
+                    longitude: Longitude::embody(longitude)?,
                 })
             }
             "Subscribe" => {
-                Self::expect_payload_count("Subscribe", payload, 1)?;
-                Ok(Self::Subscribe { kinds: Vec::<SolarEventKind>::from_dotos_block(&payload[0])? })
+                let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
+                    return Err(headed.body.fault(FaultProblem::Shape));
+                };
+                let [kinds] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Subscribe { kinds: Vec::<SolarEventKind>::embody(kinds)? })
             }
-            other => Err(DotosDecodeError::UnknownVariant { enum_name: "Request", variant: other.to_owned() }),
+            _ => Err(portion.fault(FaultProblem::Shape)),
         }
     }
-}
 
-impl DotosEncode for Request {
-    fn to_dotos(&self) -> String {
+    fn portion(&self) -> Portion {
         match self {
-            Self::GetTime => "GetTime".to_owned(),
-            Self::GetSchedule => "GetSchedule".to_owned(),
-            Self::GetLocation => "GetLocation".to_owned(),
-            Self::SetLocation { latitude, longitude } => {
-                format!("SetLocation.{}", Delimiter::Parenthesis.wrap([latitude.to_dotos(), longitude.to_dotos()]))
+            Self::GetTime => "GetTime".bare(),
+            Self::GetSchedule => "GetSchedule".bare(),
+            Self::GetLocation => "GetLocation".bare(),
+            Self::UseGeoclue => "UseGeoclue".bare(),
+            Self::SetLocation { latitude, longitude } => "SetLocation".headed(
+                Separator::Period,
+                "".structural(StructuralEnclosure::Braced, vec![latitude.portion(), longitude.portion()]),
+            ),
+            Self::Subscribe { kinds } => {
+                "Subscribe".headed(Separator::Period, "".structural(StructuralEnclosure::Braced, vec![kinds.portion()]))
             }
-            Self::UseGeoclue => "UseGeoclue".to_owned(),
-            Self::Subscribe { kinds } => format!("Subscribe.{}", Delimiter::Parenthesis.wrap([kinds.to_dotos()])),
         }
     }
 }

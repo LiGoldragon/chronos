@@ -1,73 +1,47 @@
-//! [`Error`] — the crate's typed error enum.
-//!
-//! Every fallible boundary in the crate returns
-//! `Result<T, Error>`. No `anyhow::Error` / `eyre::Report` /
-//! `Box<dyn Error>` at any boundary; per
-//! `~/primary/skills/rust-discipline.md` §"Errors: typed enum
-//! per crate via thiserror".
+//! The crate's typed boundary failures.
 
 use thiserror::Error as ThisError;
 
-use dotos::DotosDecodeError;
-
-/// The crate's error type.
+/// Every fallible Chronos boundary returns this error.
 #[derive(Debug, ThisError)]
 pub enum Error {
-    /// Failed to parse a DOTOS document at the CLI boundary.
-    #[error("dotos parse failed: {0}")]
-    DotosParse(#[from] DotosDecodeError),
-
+    /// A Datomic value does not embody as the expected Chronos type.
+    #[error("Datomic {type_name} value is invalid: {problem}")]
+    Datomic { type_name: &'static str, problem: &'static str },
     /// Failed to encode or decode an rkyv archive on the wire.
     #[error("rkyv codec failed: {0}")]
     RkyvCodec(String),
-
     /// I/O error from the OS (UDS, file, process).
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
-
     /// DBus error from a `geoclue2` method call.
     #[error("dbus: {0}")]
     Dbus(#[from] zbus::Error),
-
-    /// The DE440 ephemeris failed to load or query.
     #[error("ephemeris: {0}")]
     Ephemeris(String),
-
-    /// NREL SPA solar-position computation failed.
     #[error("solar position: {0}")]
     SolarPosition(String),
-
-    /// A typed newtype's `try_new` rejected an input that was
-    /// outside its valid range. `type_name` names the newtype
-    /// (`Latitude`, `EclipticLongitude`, `ZodiacDegree`, …);
-    /// `valid_range` is a human-facing description of the
-    /// constraint (`"[-90, 90]"`, `"[0, 360)"`, …); `got` is the
-    /// rejected value's `Display` form.
-    ///
-    /// Wire-side, DOTOS decode wraps this into
-    /// `DotosDecodeError::InvalidValue` where the message renders
-    /// this variant.
+    /// A numeric domain value is outside its representable range.
     #[error("`{type_name}` out of range {valid_range}, got {got}")]
     OutOfRange { type_name: &'static str, valid_range: &'static str, got: String },
-
-    /// The daemon refused a request.
     #[error("daemon: {message}")]
     Daemon { message: String },
 }
 
 impl Error {
-    pub fn into_dotos_invalid_value(self, value: impl Into<String>) -> DotosDecodeError {
-        let value = value.into();
-        match self {
-            Self::OutOfRange { type_name, valid_range, got } => DotosDecodeError::InvalidValue {
-                type_name,
-                value,
-                reason: format!("out of range {valid_range}, got {got}"),
-            },
-            other => DotosDecodeError::InvalidValue { type_name: "ChronosValue", value, reason: other.to_string() },
-        }
+    pub fn from_fault(type_name: &'static str, fault: datomic::Fault) -> Self {
+        let problem = match fault.problem {
+            datomic::FaultProblem::Shape => "shape",
+            datomic::FaultProblem::Head => "head",
+            datomic::FaultProblem::Value => "value",
+            datomic::FaultProblem::Arity => "arity",
+            datomic::FaultProblem::MapPair => "map pair",
+            datomic::FaultProblem::DuplicateMapKey => "duplicate map key",
+            datomic::FaultProblem::UnrepresentableString => "unrepresentable string",
+            datomic::FaultProblem::Protos => "Protos",
+        };
+        Self::Datomic { type_name, problem }
     }
 }
 
-/// Crate-local result alias.
 pub type Result<T> = core::result::Result<T, Error>;

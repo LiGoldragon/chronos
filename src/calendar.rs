@@ -17,7 +17,8 @@
 
 use core::fmt;
 
-use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DecimalViewing, Fault, FaultProblem, FiniteDecimal, PortionViewing};
+use protos::Portion;
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -28,9 +29,7 @@ use crate::error::{Error, Result};
 /// follow chronologically. Any signed integer is a valid
 /// year, so [`AmYear`] is transparently encoded — no validation
 /// gap exists.
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AmYear(i32);
 
 impl AmYear {
@@ -48,6 +47,17 @@ impl AmYear {
 impl fmt::Display for AmYear {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}", self.0)
+    }
+}
+
+impl Datomic for AmYear {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let value = i64::embody(portion)?;
+        i32::try_from(value).map(Self).map_err(|_| portion.fault(FaultProblem::Value))
+    }
+
+    fn portion(&self) -> Portion {
+        i64::from(self.0).portion()
     }
 }
 
@@ -103,15 +113,13 @@ impl fmt::Display for OrdinalSolarTime {
     }
 }
 
-impl DotosDecode for OrdinalSolarTime {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let fraction = f64::from_dotos_block(block)?;
-        Self::try_new(fraction).map_err(|error| error.into_dotos_invalid_value(fraction.to_string()))
+impl Datomic for OrdinalSolarTime {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let value = FiniteDecimal::embody(portion)?.value();
+        Self::try_new(value).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosEncode for OrdinalSolarTime {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        FiniteDecimal::try_from(self.0).expect("OrdinalSolarTime is finite").portion()
     }
 }

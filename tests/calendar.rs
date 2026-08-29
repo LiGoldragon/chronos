@@ -2,7 +2,7 @@
 //! (`AmYear`, `OrdinalSolarTime`).
 
 use chronos::{AmYear, OrdinalSolarTime};
-use dotos::{DotosDecodeError, DotosSource};
+use datomic::{FaultProblem, Text, TextEdge};
 
 // ─── AmYear ────────────────────────────────────────────────
 
@@ -59,14 +59,8 @@ fn ordinal_solar_time_from_unnormalized_degrees_converts() {
 
 #[test]
 fn ordinal_solar_time_wire_validation() {
-    let error = DotosSource::new("1.5").parse::<OrdinalSolarTime>().unwrap_err();
-    match error {
-        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
-            assert_eq!(type_name, "OrdinalSolarTime");
-            assert!(reason.contains("[0, 1)"), "message was: {reason}");
-        }
-        other => panic!("expected InvalidValue error, got {other:?}"),
-    }
+    let error = Text::<OrdinalSolarTime>::from("1.5").embody().unwrap_err();
+    assert!(matches!(error.problem, FaultProblem::Value));
 }
 
 #[test]

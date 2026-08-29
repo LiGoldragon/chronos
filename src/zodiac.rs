@@ -13,7 +13,8 @@
 
 use core::fmt;
 
-use dotos::{Block, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DecimalViewing, Fault, FaultProblem, FiniteDecimal, PortionBuilding, PortionViewing};
+use protos::{Portion, StructuralEnclosure};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -21,9 +22,7 @@ use crate::error::{Error, Result};
 /// One of the twelve zodiac signs, in source-declaration
 /// order matching the standard zodiacal sequence (Aries first,
 /// Pisces last).
-#[derive(
-    Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ZodiacSign {
     Aries,
     Taurus,
@@ -85,6 +84,43 @@ impl fmt::Display for ZodiacSign {
     }
 }
 
+impl Datomic for ZodiacSign {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        match portion.bare_symbol() {
+            Some("Aries") => Ok(Self::Aries),
+            Some("Taurus") => Ok(Self::Taurus),
+            Some("Gemini") => Ok(Self::Gemini),
+            Some("Cancer") => Ok(Self::Cancer),
+            Some("Leo") => Ok(Self::Leo),
+            Some("Virgo") => Ok(Self::Virgo),
+            Some("Libra") => Ok(Self::Libra),
+            Some("Scorpio") => Ok(Self::Scorpio),
+            Some("Sagittarius") => Ok(Self::Sagittarius),
+            Some("Capricorn") => Ok(Self::Capricorn),
+            Some("Aquarius") => Ok(Self::Aquarius),
+            Some("Pisces") => Ok(Self::Pisces),
+            _ => Err(portion.fault(FaultProblem::Shape)),
+        }
+    }
+    fn portion(&self) -> Portion {
+        match self {
+            Self::Aries => "Aries",
+            Self::Taurus => "Taurus",
+            Self::Gemini => "Gemini",
+            Self::Cancer => "Cancer",
+            Self::Leo => "Leo",
+            Self::Virgo => "Virgo",
+            Self::Libra => "Libra",
+            Self::Scorpio => "Scorpio",
+            Self::Sagittarius => "Sagittarius",
+            Self::Capricorn => "Capricorn",
+            Self::Aquarius => "Aquarius",
+            Self::Pisces => "Pisces",
+        }
+        .bare()
+    }
+}
+
 /// The sun's apparent ecliptic longitude in degrees, in
 /// `[0.0, 360.0)`.
 ///
@@ -131,16 +167,12 @@ impl fmt::Display for EclipticLongitude {
     }
 }
 
-impl DotosDecode for EclipticLongitude {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let degrees = f64::from_dotos_block(block)?;
-        Self::try_new(degrees).map_err(|error| error.into_dotos_invalid_value(degrees.to_string()))
+impl Datomic for EclipticLongitude {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        Self::try_new(FiniteDecimal::embody(portion)?.value()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
-
-impl DotosEncode for EclipticLongitude {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        FiniteDecimal::try_from(self.0).expect("EclipticLongitude is finite").portion()
     }
 }
 
@@ -164,16 +196,16 @@ impl ZodiacDegree {
     }
 }
 
-impl DotosDecode for ZodiacDegree {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let degree = u8::from_dotos_block(block)?;
-        Self::try_new(degree).map_err(|error| error.into_dotos_invalid_value(degree.to_string()))
+impl Datomic for ZodiacDegree {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let value = i64::embody(portion)?;
+        u8::try_from(value)
+            .ok()
+            .and_then(|value| Self::try_new(value).ok())
+            .ok_or_else(|| portion.fault(FaultProblem::Value))
     }
-}
-
-impl DotosEncode for ZodiacDegree {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        i64::from(self.0).portion()
     }
 }
 
@@ -197,23 +229,23 @@ impl ZodiacMinute {
     }
 }
 
-impl DotosDecode for ZodiacMinute {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        let minute = u8::from_dotos_block(block)?;
-        Self::try_new(minute).map_err(|error| error.into_dotos_invalid_value(minute.to_string()))
+impl Datomic for ZodiacMinute {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let value = i64::embody(portion)?;
+        u8::try_from(value)
+            .ok()
+            .and_then(|value| Self::try_new(value).ok())
+            .ok_or_else(|| portion.fault(FaultProblem::Value))
     }
-}
-
-impl DotosEncode for ZodiacMinute {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
+    fn portion(&self) -> Portion {
+        i64::from(self.0).portion()
     }
 }
 
 /// A point on the zodiac: `sign` + `degree` (0..30) + `minute`
 /// (0..60). Carried forward from the prototype's zodiacal-time
 /// output formats.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, DotosDecode, DotosEncode, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
 pub struct ZodiacalTime {
     pub sign: ZodiacSign,
     pub degree: ZodiacDegree,
@@ -238,5 +270,27 @@ impl ZodiacalTime {
 impl fmt::Display for ZodiacalTime {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "{} {:02}°{:02}'", self.sign.symbol(), self.degree.as_u8(), self.minute.as_u8())
+    }
+}
+
+impl Datomic for ZodiacalTime {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [sign, degree, minute] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            sign: ZodiacSign::embody(sign)?,
+            degree: ZodiacDegree::embody(degree)?,
+            minute: ZodiacMinute::embody(minute)?,
+        })
+    }
+    fn portion(&self) -> Portion {
+        "".structural(
+            StructuralEnclosure::Braced,
+            vec![self.sign.portion(), self.degree.portion(), self.minute.portion()],
+        )
     }
 }

@@ -1,131 +1,133 @@
-//! [`Response`] — what the daemon replies with.
-//!
-//! Encodes both one-shot replies (`Time`, `Schedule`, `Location`,
-//! `Acked`, `Error`) and subscription frames (`Event`). A
-//! subscriber receives one `Event` frame per fire on a long-
-//! lived connection.
+//! The typed Datomic response rendered by the Chronos CLI.
 
-use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode, DotosSource};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing, Text, TextEdge};
+use protos::{Portion, Separator, StructuralEnclosure};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
-use crate::error::{Error, Result};
-use crate::event::SolarEvent;
-use crate::location::{Location, LocationSource};
-use crate::zodiac::ZodiacalTime;
+use crate::{
+    error::{Error as ChronosError, Result},
+    event::SolarEvent,
+    location::{Location, LocationSource},
+    zodiac::ZodiacalTime,
+};
 
-/// What the daemon replies with.
+/// A response message representable at every canonical Datomic outbound edge.
+#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ErrorMessage(String);
+
+impl ErrorMessage {
+    /// Validate text before it becomes an outbound response payload.
+    pub fn try_new(message: String) -> Result<Self> {
+        DatomicString::try_from(message.clone())
+            .map(|_| Self(message))
+            .map_err(|_| ChronosError::Datomic { type_name: "ErrorMessage", problem: "unrepresentable string" })
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Datomic for ErrorMessage {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        DatomicString::try_from(self.0.clone()).expect("ErrorMessage construction proved representability").portion()
+    }
+}
+
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq)]
 pub enum Response {
-    /// The request was accepted and produced no reply payload.
     Acked,
-
-    /// The current zodiacal time (reply to `GetTime`).
     Time { zodiacal_time: ZodiacalTime },
-
-    /// Today's solar schedule (reply to `GetSchedule`).
     Schedule { events: Vec<SolarEvent> },
-
-    /// The daemon's current location (reply to `GetLocation`).
     Location { location: Location, source: LocationSource },
-
-    /// One pushed event on a `Subscribe` stream.
     Event { event: SolarEvent },
-
-    /// The daemon refused or could not handle the request.
-    Error { message: String },
+    Error { message: ErrorMessage },
 }
 
 impl Response {
-    /// Parse a single DOTOS record into a typed response.
-    pub fn from_dotos(text: &str) -> Result<Self> {
-        Ok(DotosSource::new(text).parse::<Self>()?)
+    pub fn from_text(source: &str) -> Result<Self> {
+        Text::<Self>::from(source).embody().map_err(|fault| ChronosError::from_fault("Response", fault))
     }
 
-    /// Render this response as a DOTOS record.
-    pub fn to_dotos(&self) -> Result<String> {
-        Ok(DotosEncode::to_dotos(self))
+    pub fn to_text(&self) -> String {
+        self.textualize().as_ref().to_owned()
     }
 
-    /// Archive into rkyv bytes for the wire.
     pub fn archive(&self) -> Result<Vec<u8>> {
         rkyv::to_bytes::<rkyv::rancor::Error>(self)
             .map(|bytes| bytes.to_vec())
-            .map_err(|err| Error::RkyvCodec(err.to_string()))
+            .map_err(|error| ChronosError::RkyvCodec(error.to_string()))
     }
 
-    /// Reconstruct from an rkyv archive coming off the wire.
     pub fn from_archive(bytes: &[u8]) -> Result<Self> {
-        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|err| Error::RkyvCodec(err.to_string()))
-    }
-
-    fn expect_payload_count(
-        tag: &'static str,
-        payload: &[Block],
-        expected: usize,
-    ) -> core::result::Result<(), DotosDecodeError> {
-        if payload.len() == expected {
-            Ok(())
-        } else {
-            Err(DotosDecodeError::ExpectedRootCount { type_name: tag, expected, found: payload.len() })
-        }
+        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|error| ChronosError::RkyvCodec(error.to_string()))
     }
 }
 
-impl DotosDecode for Response {
-    fn from_dotos_block(block: &Block) -> core::result::Result<Self, DotosDecodeError> {
-        if let Some(tag) = block.demote_to_string() {
-            return match tag {
-                "Acked" => Ok(Self::Acked),
-                other => Err(DotosDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
-            };
+impl Datomic for Response {
+    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
+        if portion.bare_symbol() == Some("Acked") {
+            return Ok(Self::Acked);
         }
-
-        let (head, payload) = block.as_application().ok_or(DotosDecodeError::ExpectedDelimited {
-            type_name: "Response",
-            delimiter: "Response.(payload) application",
-        })?;
-        let tag = head.demote_to_string().ok_or(DotosDecodeError::ExpectedAtom { type_name: "Response variant" })?;
-        let payload = DotosBlock::new(payload).expect_delimited(Delimiter::Parenthesis, "Response")?;
-        match tag {
+        let Some(headed) = portion.headed() else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        if headed.separator != Separator::Period {
+            return Err(portion.fault(FaultProblem::Shape));
+        }
+        let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
+            return Err(headed.body.fault(FaultProblem::Shape));
+        };
+        match headed.head.as_ref() {
             "Time" => {
-                Self::expect_payload_count("Time", payload, 1)?;
-                Ok(Self::Time { zodiacal_time: ZodiacalTime::from_dotos_block(&payload[0])? })
+                let [time] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Time { zodiacal_time: ZodiacalTime::embody(time)? })
             }
             "Schedule" => {
-                Self::expect_payload_count("Schedule", payload, 1)?;
-                Ok(Self::Schedule { events: Vec::<SolarEvent>::from_dotos_block(&payload[0])? })
+                let [events] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Schedule { events: Vec::<SolarEvent>::embody(events)? })
             }
             "Location" => {
-                Self::expect_payload_count("Location", payload, 2)?;
-                Ok(Self::Location {
-                    location: Location::from_dotos_block(&payload[0])?,
-                    source: LocationSource::from_dotos_block(&payload[1])?,
-                })
+                let [location, source] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Location { location: Location::embody(location)?, source: LocationSource::embody(source)? })
             }
             "Event" => {
-                Self::expect_payload_count("Event", payload, 1)?;
-                Ok(Self::Event { event: SolarEvent::from_dotos_block(&payload[0])? })
+                let [event] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Event { event: SolarEvent::embody(event)? })
             }
             "Error" => {
-                Self::expect_payload_count("Error", payload, 1)?;
-                Ok(Self::Error { message: String::from_dotos_block(&payload[0])? })
+                let [message] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::Error { message: ErrorMessage::embody(message)? })
             }
-            other => Err(DotosDecodeError::UnknownVariant { enum_name: "Response", variant: other.to_owned() }),
+            _ => Err(portion.fault(FaultProblem::Shape)),
         }
     }
-}
 
-impl DotosEncode for Response {
-    fn to_dotos(&self) -> String {
+    fn portion(&self) -> Portion {
+        let braced = |parts| "".structural(StructuralEnclosure::Braced, parts);
         match self {
-            Self::Acked => "Acked".to_owned(),
-            Self::Time { zodiacal_time } => format!("Time.{}", Delimiter::Parenthesis.wrap([zodiacal_time.to_dotos()])),
-            Self::Schedule { events } => format!("Schedule.{}", Delimiter::Parenthesis.wrap([events.to_dotos()])),
+            Self::Acked => "Acked".bare(),
+            Self::Time { zodiacal_time } => "Time".headed(Separator::Period, braced(vec![zodiacal_time.portion()])),
+            Self::Schedule { events } => "Schedule".headed(Separator::Period, braced(vec![events.portion()])),
             Self::Location { location, source } => {
-                format!("Location.{}", Delimiter::Parenthesis.wrap([location.to_dotos(), source.to_dotos()]))
+                "Location".headed(Separator::Period, braced(vec![location.portion(), source.portion()]))
             }
-            Self::Event { event } => format!("Event.{}", Delimiter::Parenthesis.wrap([event.to_dotos()])),
-            Self::Error { message } => format!("Error.{}", Delimiter::Parenthesis.wrap([message.to_dotos()])),
+            Self::Event { event } => "Event".headed(Separator::Period, braced(vec![event.portion()])),
+            Self::Error { message } => "Error".headed(Separator::Period, braced(vec![message.portion()])),
         }
     }
 }

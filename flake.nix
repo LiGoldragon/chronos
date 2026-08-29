@@ -20,7 +20,12 @@
         };
 
         inherit (rust) craneLib toolchain;
-        src = rust.cleanCargoSource ./.;
+        src = rust.cleanSource {
+          root = ./.;
+          extraFilters = [
+            (path: _type: pkgs.lib.hasPrefix (toString ./. + "/.ethos/data/") path)
+          ];
+        };
         commonArgs = {
           inherit src;
           strictDeps = true;
@@ -32,9 +37,24 @@
           inherit cargoArtifacts;
         });
 
-        checks.default = craneLib.cargoTest (commonArgs // {
-          inherit cargoArtifacts;
-        });
+        checks = {
+          build = craneLib.cargoBuild (commonArgs // { inherit cargoArtifacts; });
+          test = craneLib.cargoTest (commonArgs // { inherit cargoArtifacts; });
+          doc = craneLib.cargoDoc (commonArgs // {
+            inherit cargoArtifacts;
+            RUSTDOCFLAGS = "-D warnings";
+          });
+          fmt = craneLib.cargoFmt { inherit src; };
+          clippy = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+            cargoClippyExtraArgs = "--all-targets -- -D warnings";
+          });
+          ethos-source = pkgs.runCommand "chronos-ethos-source" { } ''
+            test -f ${src}/.ethos/data/chronos.ethos
+            test -f ${src}/.ethos/data/datomic_library.rs
+            touch "$out"
+          '';
+        };
 
         devShells.default = pkgs.mkShell {
           name = "chronos";

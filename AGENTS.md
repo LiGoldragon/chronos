@@ -6,7 +6,7 @@ Chronos is the **time-and-sky daemon**: a long-running user
 service that publishes the current zodiacal time, sunrise /
 sunset, civil twilight, and other ordinal-solar events for the
 local observer. Chroma's schedule engine subscribes to chronos's
-twilight events and reacts; humans query chronos via DOTOS-on-argv
+twilight events and reacts; humans query chronos via typed Datomic on argv
 (`chronos 'GetTime'`) for the current zodiacal time.
 
 ## Carve-outs worth knowing
@@ -23,9 +23,9 @@ twilight events and reacts; humans query chronos via DOTOS-on-argv
   twilight at any solar elevation angle. The prototype's
   Meeus + JPL Horizons calibration loop is **not** carried
   forward — DE440 *is* the ground truth.
-- **rkyv on the wire, DOTOS at the human boundary.** Daemon ↔
+- **rkyv on the wire, Datomic at the human boundary.** Daemon ↔
   CLI / chroma is the canonical signal pattern (length-prefixed
-  rkyv frames over UDS). DOTOS appears only on the CLI argv,
+  rkyv frames over UDS). Canonical Datomic appears only on the CLI argv,
   the one disk record (`LocationSource` override), and the
   printed reply.
 - **Group-gated UDS.** `/run/chronos/<uid>.sock`, `chronos`
@@ -83,10 +83,9 @@ prompts (always `-m '<msg>'`).
 - the Kameo discipline — Kameo actor runtime discipline.
 - `lore/rust/rkyv.md` — wire format discipline.
 - the `signal` repository — canonical signal pattern reference.
-- the `lojix` repository — typed DOTOS client shape.
+- the `datomic` repository — typed Portion/Datomic client shape.
 
 ## Protos estate status
 
 Stack: correct-new destination
-Status: active component, current checkout legacy-wired
-This checkout is not proof of correct-new adoption.
+Status: active component, current Portion/Datomic/Ethos-wired checkout.

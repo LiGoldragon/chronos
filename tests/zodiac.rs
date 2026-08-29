@@ -2,7 +2,7 @@
 //! module.
 
 use chronos::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};
-use dotos::{DotosDecodeError, DotosEncode, DotosSource};
+use datomic::{Datomic, FaultProblem, Text, TextEdge};
 
 // ─── ZodiacSign ────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ fn every_sign_has_a_unique_symbol() {
 }
 
 #[test]
-fn zodiac_sign_dotos_round_trips_for_every_variant() {
+fn zodiac_sign_datomic_round_trips_for_every_variant() {
     for sign in [
         ZodiacSign::Aries,
         ZodiacSign::Taurus,
@@ -62,8 +62,8 @@ fn zodiac_sign_dotos_round_trips_for_every_variant() {
         ZodiacSign::Aquarius,
         ZodiacSign::Pisces,
     ] {
-        let text = sign.to_dotos();
-        let decoded = DotosSource::new(&text).parse::<ZodiacSign>().expect("decode");
+        let text = sign.textualize();
+        let decoded = Text::<ZodiacSign>::from(text.as_ref()).embody().expect("embody");
         assert_eq!(decoded, sign, "round-trip changed {sign:?} via text {text:?}");
     }
 }
@@ -98,14 +98,8 @@ fn ecliptic_longitude_from_unnormalized_wraps() {
 
 #[test]
 fn ecliptic_longitude_wire_validation() {
-    let error = DotosSource::new("400.0").parse::<EclipticLongitude>().unwrap_err();
-    match error {
-        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
-            assert_eq!(type_name, "EclipticLongitude");
-            assert!(reason.contains("[0, 360)"), "message was: {reason}");
-        }
-        other => panic!("expected InvalidValue error, got {other:?}"),
-    }
+    let error = Text::<EclipticLongitude>::from("400.0").embody().unwrap_err();
+    assert!(matches!(error.problem, FaultProblem::Value));
 }
 
 // ─── ZodiacDegree / ZodiacMinute ───────────────────────────
@@ -123,14 +117,8 @@ fn zodiac_degree_30_rejected() {
 
 #[test]
 fn zodiac_degree_wire_validation() {
-    let error = DotosSource::new("30").parse::<ZodiacDegree>().unwrap_err();
-    match error {
-        DotosDecodeError::InvalidValue { type_name, reason, .. } => {
-            assert_eq!(type_name, "ZodiacDegree");
-            assert!(reason.contains("[0, 30)"), "message was: {reason}");
-        }
-        other => panic!("expected InvalidValue error, got {other:?}"),
-    }
+    let error = Text::<ZodiacDegree>::from("30").embody().unwrap_err();
+    assert!(matches!(error.problem, FaultProblem::Value));
 }
 
 #[test]
@@ -162,9 +150,9 @@ fn zodiacal_time_display_uses_unicode_symbol() {
 }
 
 #[test]
-fn zodiacal_time_dotos_round_trip() {
+fn zodiacal_time_datomic_round_trip() {
     let original = ZodiacalTime::from_longitude(EclipticLongitude::try_new(135.5).unwrap());
-    let text = original.to_dotos();
-    let decoded = DotosSource::new(&text).parse::<ZodiacalTime>().expect("decode");
+    let text = original.textualize();
+    let decoded = Text::<ZodiacalTime>::from(text.as_ref()).embody().expect("embody");
     assert_eq!(decoded, original);
 }
