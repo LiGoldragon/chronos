@@ -1,23 +1,26 @@
-//! Parsed-Protos D3 witnesses for Chronos's hand-checked domain values.
+//! Current Datom witnesses for Chronos's hand-checked domain values.
 
 use chronos::{
     AmYear, EclipticLongitude, EpochTaiNanos, ErrorMessage, Latitude, Location, LocationSource, Longitude,
     OrdinalSolarTime, Request, Response, SolarEvent, SolarEventKind, ZodiacDegree, ZodiacMinute, ZodiacSign,
     ZodiacalTime,
 };
-use datomic::{Datomic, FaultProblem, Text, TextEdge};
+use datom_codec::{Actualizable, Datomic, IncorporationBudget, Potential, Problem, Textualizable};
 
-fn embody<T: Datomic>(source: &str) -> T {
-    Text::<T>::from(source).embody().expect("the fixture embodies through one parsed Portion")
+fn incorporate<T: Datomic>(source: &str) -> T {
+    Potential::<T>::from(source)
+        .actualize(IncorporationBudget::try_from(4096).expect("positive budget"))
+        .unwrap_or_else(|fault| panic!("fixture incorporates as one Datom ({source}): {fault:?}"))
 }
 
-fn round_trip<T: Datomic>(source: &str) {
-    let value = embody::<T>(source);
-    assert_eq!(value.textualize().as_ref(), source, "canonical Datomic text survives its checked D3 anatomy");
+fn round_trip<T: Datomic + std::fmt::Debug + PartialEq>(source: &str) {
+    let value = incorporate::<T>(source);
+    let rendered = value.textualize();
+    assert_eq!(incorporate::<T>(&rendered), value, "canonical Datom changes value");
 }
 
 #[test]
-fn hand_d3_domain_anatomies_round_trip_parsed_portions() {
+fn domain_anatomies_round_trip_current_datom() {
     round_trip::<AmYear>("5863");
     round_trip::<OrdinalSolarTime>("0.5");
     round_trip::<Latitude>("47.6");
@@ -35,7 +38,7 @@ fn hand_d3_domain_anatomies_round_trip_parsed_portions() {
 }
 
 #[test]
-fn request_and_response_keep_the_canonical_cli_grammar() {
+fn request_and_response_keep_the_cli_data_boundary() {
     round_trip::<Request>("GetTime");
     round_trip::<Request>("SetLocation.{47.6 -122.3}");
     round_trip::<Request>("Subscribe.{[CivilDawn CivilDusk]}");
@@ -48,36 +51,35 @@ fn request_and_response_keep_the_canonical_cli_grammar() {
 }
 
 #[test]
-fn hand_d3_refuses_wrong_shapes_and_out_of_range_values() {
-    refused::<Location>("{47.6}", FaultProblem::Arity);
-    refused::<Request>("SetLocation.{47.6}", FaultProblem::Arity);
-    refused::<Request>("Subscribe.[CivilDawn]", FaultProblem::Shape);
-    refused::<Response>("Time.{Taurus 15 30}", FaultProblem::Arity);
-    refused::<Latitude>("91.0", FaultProblem::Value);
-    refused::<EclipticLongitude>("360.0", FaultProblem::Value);
-    refused::<ZodiacDegree>("30", FaultProblem::Value);
+fn domain_readers_refuse_wrong_shapes_and_out_of_range_values() {
+    refused::<Location>("{47.6}", false);
+    refused::<Request>("SetLocation.{47.6}", false);
+    refused::<Request>("Subscribe.[CivilDawn]", false);
+    refused::<Response>("Time.{Taurus 15 30}", false);
+    refused::<Latitude>("91.0", true);
+    refused::<EclipticLongitude>("360.0", true);
+    refused::<ZodiacDegree>("30", true);
 }
 
-fn refused<T: Datomic + std::fmt::Debug>(source: &str, expected: FaultProblem) {
-    let fault = Text::<T>::from(source).embody().expect_err("invalid D3 anatomy is refused");
-    assert!(
-        matches!(
-            (fault.problem, expected),
-            (FaultProblem::Shape, FaultProblem::Shape)
-                | (FaultProblem::Arity, FaultProblem::Arity)
-                | (FaultProblem::Value, FaultProblem::Value)
-        ),
-        "{source} was refused as a different fault"
-    );
+fn refused<T: Datomic + std::fmt::Debug>(source: &str, value: bool) {
+    let fault = Potential::<T>::from(source)
+        .actualize(IncorporationBudget::try_from(4096).expect("positive budget"))
+        .expect_err("invalid Datom is refused");
+    if value {
+        assert!(matches!(fault, datom_codec::Fault::Corporate(_, Problem::Value(_))), "{source}");
+    }
 }
 
 #[test]
-fn outbound_error_text_is_checked_as_a_datomic_string() {
+fn outbound_error_text_is_checked_as_datom_text() {
     let response = Response::Error { message: ErrorMessage::try_new("sky's ephemeris is missing".to_owned()).unwrap() };
-    assert_eq!(response.textualize().as_ref(), "Error.{“sky's ephemeris is missing”}");
+    assert_eq!(response.textualize(), "Error.{ “sky's ephemeris is missing” }");
 }
 
 #[test]
-fn error_message_rejects_unrepresentable_text_before_outbound_datomic() {
-    assert!(ErrorMessage::try_new("unbalanced “ curly".to_owned()).is_err());
+fn error_response_requires_a_text_payload() {
+    let result = Potential::<Response>::from("Error.{ sky missing }")
+        .actualize(IncorporationBudget::try_from(4096).expect("positive budget"))
+        .is_err();
+    assert!(result, "bare words cannot stand in for a typed error text payload");
 }

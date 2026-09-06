@@ -4,24 +4,28 @@
 //! domain type.
 
 use chronos::{Latitude, Location, Longitude};
-use datomic::{FaultProblem, Text, TextEdge};
+use datom_codec::{Actualizable, IncorporationBudget, Potential, Problem};
+
+fn incorporate<T: datom_codec::Datomic>(source: &str) -> Result<T, datom_codec::Fault> {
+    Potential::<T>::from(source).actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
+}
 
 #[test]
 fn valid_latitude_decodes_through_try_new() {
-    let value = Text::<Latitude>::from("47.6").embody().unwrap();
+    let value = incorporate::<Latitude>("47.6").unwrap();
     assert_eq!(value, Latitude::try_new(47.6).unwrap());
 }
 
 #[test]
 fn out_of_range_latitude_rejected_at_wire() {
-    let error = Text::<Latitude>::from("200.0").embody().unwrap_err();
-    assert!(matches!(error.problem, FaultProblem::Value));
+    let error = incorporate::<Latitude>("200.0").unwrap_err();
+    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
 }
 
 #[test]
 fn out_of_range_longitude_rejected_at_wire() {
-    let error = Text::<Longitude>::from("-400.0").embody().unwrap_err();
-    assert!(matches!(error.problem, FaultProblem::Value));
+    let error = incorporate::<Longitude>("-400.0").unwrap_err();
+    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
 }
 
 #[test]
@@ -72,8 +76,8 @@ fn location_decode_propagates_field_validation() {
     // otherwise-valid Location record. Datomic delegates
     // per-field embodiment, so the latitude field's constructor
     // validation surfaces before any Location is constructed.
-    let error = Text::<Location>::from("{200.0 0.0}").embody().unwrap_err();
-    assert!(matches!(error.problem, FaultProblem::Value));
+    let error = incorporate::<Location>("{200.0 0.0}").unwrap_err();
+    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
 }
 
 #[test]

@@ -2,7 +2,7 @@
 //! (`AmYear`, `OrdinalSolarTime`).
 
 use chronos::{AmYear, OrdinalSolarTime};
-use datomic::{FaultProblem, Text, TextEdge};
+use datom_codec::{Actualizable, IncorporationBudget, Potential, Problem};
 
 // ─── AmYear ────────────────────────────────────────────────
 
@@ -59,8 +59,10 @@ fn ordinal_solar_time_from_unnormalized_degrees_converts() {
 
 #[test]
 fn ordinal_solar_time_wire_validation() {
-    let error = Text::<OrdinalSolarTime>::from("1.5").embody().unwrap_err();
-    assert!(matches!(error.problem, FaultProblem::Value));
+    let error = Potential::<OrdinalSolarTime>::from("1.5")
+        .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
+        .unwrap_err();
+    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
 }
 
 #[test]

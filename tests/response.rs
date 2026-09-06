@@ -100,6 +100,6 @@ fn error_message() {
 fn error_messages_with_apostrophes_do_not_require_quote_delimiters() {
     let response = Response::Error { message: ErrorMessage::try_new("sky's ephemeris is missing".into()).unwrap() };
     let text = response.to_text();
-    assert_eq!(text, "Error.{“sky's ephemeris is missing”}");
+    assert_eq!(text, "Error.{ “sky's ephemeris is missing” }");
     assert_eq!(Response::from_text(&text).expect("Datomic embody"), response);
 }

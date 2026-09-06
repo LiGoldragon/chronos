@@ -40,6 +40,13 @@ and receive each event as it fires. The producer pushes;
 the consumer waits. Per `~/primary/skills/push-not-pull.md`,
 no polling.
 
+Both surfaces use one typed current-Datom boundary. Chronos accepts a single
+`Request` value and renders a canonical `Response`; whitespace in output is
+canonical, while equivalent compact input remains part of the grammar. Its
+authoritative schema is [`.ethos/data/chronos.ethos`](.ethos/data/chronos.ethos).
+The durable UDS payload remains an rkyv archive and is not changed by this text
+codec migration.
+
 ## Status
 
 Phase 1 skeleton — types declared, daemon structure laid out,

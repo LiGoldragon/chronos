@@ -57,8 +57,24 @@ impl From<Latitude> for f64 {
     }
 }
 
-impl Datomic for Latitude { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let extent = site.at.extent; let value = f64::from(protos::Decimal::incorporate(site)?); Self::try_new(value).map_err(|_| datom_codec::Fault::Corporate(datom_codec::Locus { path: vec![], extent }, datom_codec::Problem::Value(Opaque::from(value.to_string())))) } }
-impl Conceivable<Datom> for Latitude { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Decimal::try_from(self.0).expect("finite latitude").conceive() } }
+impl Datomic for Latitude {
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let extent = site.at.extent;
+        let value = f64::from(protos::Decimal::incorporate(site)?);
+        Self::try_new(value).map_err(|_| {
+            datom_codec::Fault::Corporate(
+                datom_codec::Locus { path: vec![], extent },
+                datom_codec::Problem::Value(Opaque::from(value.to_string())),
+            )
+        })
+    }
+}
+impl Conceivable<Datom> for Latitude {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        protos::Decimal::try_from(self.0).expect("finite latitude").conceive()
+    }
+}
 
 /// Longitude in degrees, in `[-180.0, 180.0]`. East is positive.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
@@ -92,8 +108,24 @@ impl From<Longitude> for f64 {
     }
 }
 
-impl Datomic for Longitude { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let extent = site.at.extent; let value = f64::from(protos::Decimal::incorporate(site)?); Self::try_new(value).map_err(|_| datom_codec::Fault::Corporate(datom_codec::Locus { path: vec![], extent }, datom_codec::Problem::Value(Opaque::from(value.to_string())))) } }
-impl Conceivable<Datom> for Longitude { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Decimal::try_from(self.0).expect("finite longitude").conceive() } }
+impl Datomic for Longitude {
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let extent = site.at.extent;
+        let value = f64::from(protos::Decimal::incorporate(site)?);
+        Self::try_new(value).map_err(|_| {
+            datom_codec::Fault::Corporate(
+                datom_codec::Locus { path: vec![], extent },
+                datom_codec::Problem::Value(Opaque::from(value.to_string())),
+            )
+        })
+    }
+}
+impl Conceivable<Datom> for Longitude {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        protos::Decimal::try_from(self.0).expect("finite longitude").conceive()
+    }
+}
 
 /// A geographic location — latitude + longitude.
 ///
@@ -129,8 +161,21 @@ impl fmt::Display for Location {
     }
 }
 
-impl Datomic for Location { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let mut p = site.positions(2)?; Ok(Self { latitude: p.position()?, longitude: p.position()? }) } }
-impl Conceivable<Datom> for Location { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { Ok(Situated(Situation { extent: Extent(0, 0), children: vec![] }, Datom::Struct(vec![self.latitude.conceive()?.1, self.longitude.conceive()?.1]))) } }
+impl Datomic for Location {
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let mut p = site.positions(2)?;
+        Ok(Self { latitude: p.position()?, longitude: p.position()? })
+    }
+}
+impl Conceivable<Datom> for Location {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        Ok(Situated(
+            Situation { extent: Extent(0, 0), children: vec![] },
+            Datom::Struct(vec![self.latitude.conceive()?.1, self.longitude.conceive()?.1]),
+        ))
+    }
+}
 
 /// Where the daemon's authoritative [`Location`] comes from.
 ///
@@ -146,5 +191,32 @@ pub enum LocationSource {
     Manual,
 }
 
-impl Datomic for LocationSource { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let variant = site.variant()?; let value = match variant.name { "Geoclue" => Self::Geoclue, "Manual" => Self::Manual, name => return Err(variant.reject(datom_codec::Problem::UnknownVariant(protos::Word::try_from(name).expect("variant word")))) }; Headed::nothing(variant)?; Ok(value) } }
-impl Conceivable<Datom> for LocationSource { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { let word = match self { Self::Geoclue => "Geoclue", Self::Manual => "Manual" }; Ok(Situated(Situation { extent: Extent(0, 0), children: vec![] }, Datom::Word(datom_codec::DatomWord::try_from(word).expect("static word")))) } }
+impl Datomic for LocationSource {
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let variant = site.variant()?;
+        let value = match variant.name {
+            "Geoclue" => Self::Geoclue,
+            "Manual" => Self::Manual,
+            name => {
+                return Err(variant.reject(datom_codec::Problem::UnknownVariant(
+                    protos::Word::try_from(name).expect("variant word"),
+                )));
+            }
+        };
+        Headed::nothing(variant)?;
+        Ok(value)
+    }
+}
+impl Conceivable<Datom> for LocationSource {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        let word = match self {
+            Self::Geoclue => "Geoclue",
+            Self::Manual => "Manual",
+        };
+        Ok(Situated(
+            Situation { extent: Extent(0, 0), children: vec![] },
+            Datom::Word(datom_codec::DatomWord::try_from(word).expect("static word")),
+        ))
+    }
+}

@@ -2,7 +2,7 @@
 //! `SolarEvent` — both Datomic and rkyv wire formats.
 
 use chronos::{EpochTaiNanos, Latitude, Location, Longitude, SolarEvent, SolarEventKind};
-use datomic::{Datomic, Text, TextEdge};
+use datom_codec::{Actualizable, IncorporationBudget, Potential, Textualizable};
 
 fn seattle() -> Location {
     Location { latitude: Latitude::try_new(47.6).unwrap(), longitude: Longitude::try_new(-122.3).unwrap() }
@@ -41,7 +41,9 @@ fn solar_event_kind_datomic_round_trips_for_every_variant() {
         SolarEventKind::CivilDusk,
     ] {
         let text = kind.textualize();
-        let decoded = Text::<SolarEventKind>::from(text.as_ref()).embody().expect("embody");
+        let decoded = Potential::<SolarEventKind>::from(text.as_str())
+            .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
+            .expect("incorporate");
         assert_eq!(decoded, kind, "round-trip changed {kind:?} via text {text:?}");
     }
 }
@@ -58,7 +60,9 @@ fn solar_event_archives_round_trip() {
 fn solar_event_datomic_round_trip() {
     let event = sample_event(SolarEventKind::CivilDusk);
     let text = event.textualize();
-    let decoded = Text::<SolarEvent>::from(text.as_ref()).embody().expect("embody");
+    let decoded = Potential::<SolarEvent>::from(text.as_str())
+        .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
+        .expect("incorporate");
     assert_eq!(decoded, event);
 }
 

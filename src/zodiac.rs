@@ -85,25 +85,36 @@ impl fmt::Display for ZodiacSign {
 }
 
 impl Datomic for ZodiacSign {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        match portion.bare_symbol() {
-            Some("Aries") => Ok(Self::Aries),
-            Some("Taurus") => Ok(Self::Taurus),
-            Some("Gemini") => Ok(Self::Gemini),
-            Some("Cancer") => Ok(Self::Cancer),
-            Some("Leo") => Ok(Self::Leo),
-            Some("Virgo") => Ok(Self::Virgo),
-            Some("Libra") => Ok(Self::Libra),
-            Some("Scorpio") => Ok(Self::Scorpio),
-            Some("Sagittarius") => Ok(Self::Sagittarius),
-            Some("Capricorn") => Ok(Self::Capricorn),
-            Some("Aquarius") => Ok(Self::Aquarius),
-            Some("Pisces") => Ok(Self::Pisces),
-            _ => Err(portion.fault(FaultProblem::Shape)),
-        }
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let variant = site.variant()?;
+        let value = match variant.name {
+            "Aries" => Self::Aries,
+            "Taurus" => Self::Taurus,
+            "Gemini" => Self::Gemini,
+            "Cancer" => Self::Cancer,
+            "Leo" => Self::Leo,
+            "Virgo" => Self::Virgo,
+            "Libra" => Self::Libra,
+            "Scorpio" => Self::Scorpio,
+            "Sagittarius" => Self::Sagittarius,
+            "Capricorn" => Self::Capricorn,
+            "Aquarius" => Self::Aquarius,
+            "Pisces" => Self::Pisces,
+            name => {
+                return Err(variant.reject(datom_codec::Problem::UnknownVariant(
+                    protos::Word::try_from(name).expect("variant word"),
+                )));
+            }
+        };
+        Headed::nothing(variant)?;
+        Ok(value)
     }
-    fn portion(&self) -> Portion {
-        match self {
+}
+
+impl Conceivable<Datom> for ZodiacSign {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        let word = match self {
             Self::Aries => "Aries",
             Self::Taurus => "Taurus",
             Self::Gemini => "Gemini",
@@ -116,8 +127,11 @@ impl Datomic for ZodiacSign {
             Self::Capricorn => "Capricorn",
             Self::Aquarius => "Aquarius",
             Self::Pisces => "Pisces",
-        }
-        .bare()
+        };
+        Ok(Situated(
+            Situation { extent: Extent(0, 0), children: vec![] },
+            Datom::Word(datom_codec::DatomWord::try_from(word).expect("static word")),
+        ))
     }
 }
 
@@ -168,11 +182,21 @@ impl fmt::Display for EclipticLongitude {
 }
 
 impl Datomic for EclipticLongitude {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        Self::try_new(FiniteDecimal::embody(portion)?.value()).map_err(|_| portion.fault(FaultProblem::Value))
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let extent = site.at.extent;
+        let value = f64::from(protos::Decimal::incorporate(site)?);
+        Self::try_new(value).map_err(|_| {
+            datom_codec::Fault::Corporate(
+                datom_codec::Locus { path: vec![], extent },
+                datom_codec::Problem::Value(Opaque::from(value.to_string())),
+            )
+        })
     }
-    fn portion(&self) -> Portion {
-        FiniteDecimal::try_from(self.0).expect("EclipticLongitude is finite").portion()
+}
+impl Conceivable<Datom> for EclipticLongitude {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        protos::Decimal::try_from(self.0).expect("finite longitude").conceive()
     }
 }
 
@@ -197,15 +221,21 @@ impl ZodiacDegree {
 }
 
 impl Datomic for ZodiacDegree {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let value = i64::embody(portion)?;
-        u8::try_from(value)
-            .ok()
-            .and_then(|value| Self::try_new(value).ok())
-            .ok_or_else(|| portion.fault(FaultProblem::Value))
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let extent = site.at.extent;
+        let value = i64::from(protos::Integer::incorporate(site)?);
+        u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
+            datom_codec::Fault::Corporate(
+                datom_codec::Locus { path: vec![], extent },
+                datom_codec::Problem::Value(Opaque::from(value.to_string())),
+            )
+        })
     }
-    fn portion(&self) -> Portion {
-        i64::from(self.0).portion()
+}
+impl Conceivable<Datom> for ZodiacDegree {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        protos::Integer::from(i64::from(self.0)).conceive()
     }
 }
 
@@ -230,15 +260,21 @@ impl ZodiacMinute {
 }
 
 impl Datomic for ZodiacMinute {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let value = i64::embody(portion)?;
-        u8::try_from(value)
-            .ok()
-            .and_then(|value| Self::try_new(value).ok())
-            .ok_or_else(|| portion.fault(FaultProblem::Value))
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let extent = site.at.extent;
+        let value = i64::from(protos::Integer::incorporate(site)?);
+        u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
+            datom_codec::Fault::Corporate(
+                datom_codec::Locus { path: vec![], extent },
+                datom_codec::Problem::Value(Opaque::from(value.to_string())),
+            )
+        })
     }
-    fn portion(&self) -> Portion {
-        i64::from(self.0).portion()
+}
+impl Conceivable<Datom> for ZodiacMinute {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        protos::Integer::from(i64::from(self.0)).conceive()
     }
 }
 
@@ -274,23 +310,17 @@ impl fmt::Display for ZodiacalTime {
 }
 
 impl Datomic for ZodiacalTime {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
-            return Err(portion.fault(FaultProblem::Shape));
-        };
-        let [sign, degree, minute] = parts else {
-            return Err(portion.fault(FaultProblem::Arity));
-        };
-        Ok(Self {
-            sign: ZodiacSign::embody(sign)?,
-            degree: ZodiacDegree::embody(degree)?,
-            minute: ZodiacMinute::embody(minute)?,
-        })
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let mut positions = site.positions(3)?;
+        Ok(Self { sign: positions.position()?, degree: positions.position()?, minute: positions.position()? })
     }
-    fn portion(&self) -> Portion {
-        "".structural(
-            StructuralEnclosure::Braced,
-            vec![self.sign.portion(), self.degree.portion(), self.minute.portion()],
-        )
+}
+impl Conceivable<Datom> for ZodiacalTime {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        Ok(Situated(
+            Situation { extent: Extent(0, 0), children: vec![] },
+            Datom::Struct(vec![self.sign.conceive()?.1, self.degree.conceive()?.1, self.minute.conceive()?.1]),
+        ))
     }
 }
