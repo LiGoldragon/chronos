@@ -1,1 +1,486 @@
-# ! [allow (dead_code)] pub enum SolarEventKind { CivilDawn , Sunrise , SolarNoon , Sunset , CivilDusk , } impl datomic :: Datomic for SolarEventKind { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (CivilDawn)) { return Ok (Self :: CivilDawn) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Sunrise)) { return Ok (Self :: Sunrise) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (SolarNoon)) { return Ok (Self :: SolarNoon) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Sunset)) { return Ok (Self :: Sunset) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (CivilDusk)) { return Ok (Self :: CivilDusk) ; } Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) } fn portion (& self) -> protos :: Portion { match self { Self :: CivilDawn => datomic :: PortionBuilding :: bare (stringify ! (CivilDawn)) , Self :: Sunrise => datomic :: PortionBuilding :: bare (stringify ! (Sunrise)) , Self :: SolarNoon => datomic :: PortionBuilding :: bare (stringify ! (SolarNoon)) , Self :: Sunset => datomic :: PortionBuilding :: bare (stringify ! (Sunset)) , Self :: CivilDusk => datomic :: PortionBuilding :: bare (stringify ! (CivilDusk)) , } } } pub enum LocationSource { Geoclue , Manual , } impl datomic :: Datomic for LocationSource { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Geoclue)) { return Ok (Self :: Geoclue) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Manual)) { return Ok (Self :: Manual) ; } Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) } fn portion (& self) -> protos :: Portion { match self { Self :: Geoclue => datomic :: PortionBuilding :: bare (stringify ! (Geoclue)) , Self :: Manual => datomic :: PortionBuilding :: bare (stringify ! (Manual)) , } } } pub enum ZodiacSign { Aries , Taurus , Gemini , Cancer , Leo , Virgo , Libra , Scorpio , Sagittarius , Capricorn , Aquarius , Pisces , } impl datomic :: Datomic for ZodiacSign { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Aries)) { return Ok (Self :: Aries) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Taurus)) { return Ok (Self :: Taurus) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Gemini)) { return Ok (Self :: Gemini) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Cancer)) { return Ok (Self :: Cancer) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Leo)) { return Ok (Self :: Leo) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Virgo)) { return Ok (Self :: Virgo) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Libra)) { return Ok (Self :: Libra) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Scorpio)) { return Ok (Self :: Scorpio) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Sagittarius)) { return Ok (Self :: Sagittarius) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Capricorn)) { return Ok (Self :: Capricorn) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Aquarius)) { return Ok (Self :: Aquarius) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Pisces)) { return Ok (Self :: Pisces) ; } Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) } fn portion (& self) -> protos :: Portion { match self { Self :: Aries => datomic :: PortionBuilding :: bare (stringify ! (Aries)) , Self :: Taurus => datomic :: PortionBuilding :: bare (stringify ! (Taurus)) , Self :: Gemini => datomic :: PortionBuilding :: bare (stringify ! (Gemini)) , Self :: Cancer => datomic :: PortionBuilding :: bare (stringify ! (Cancer)) , Self :: Leo => datomic :: PortionBuilding :: bare (stringify ! (Leo)) , Self :: Virgo => datomic :: PortionBuilding :: bare (stringify ! (Virgo)) , Self :: Libra => datomic :: PortionBuilding :: bare (stringify ! (Libra)) , Self :: Scorpio => datomic :: PortionBuilding :: bare (stringify ! (Scorpio)) , Self :: Sagittarius => datomic :: PortionBuilding :: bare (stringify ! (Sagittarius)) , Self :: Capricorn => datomic :: PortionBuilding :: bare (stringify ! (Capricorn)) , Self :: Aquarius => datomic :: PortionBuilding :: bare (stringify ! (Aquarius)) , Self :: Pisces => datomic :: PortionBuilding :: bare (stringify ! (Pisces)) , } } } pub struct Location { pub latitude : Latitude , pub longitude : Longitude , } impl datomic :: Datomic for Location { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 2usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { latitude : < Latitude as datomic :: Datomic > :: embody (& parts [0usize]) ? , longitude : < Longitude as datomic :: Datomic > :: embody (& parts [1usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . latitude) , datomic :: Datomic :: portion (& self . longitude) ,] ,) } } pub struct SolarEvent { pub kind : SolarEventKind , pub when : EpochTaiNanos , pub location : Location , } impl datomic :: Datomic for SolarEvent { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 3usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { kind : < SolarEventKind as datomic :: Datomic > :: embody (& parts [0usize]) ? , when : < EpochTaiNanos as datomic :: Datomic > :: embody (& parts [1usize]) ? , location : < Location as datomic :: Datomic > :: embody (& parts [2usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . kind) , datomic :: Datomic :: portion (& self . when) , datomic :: Datomic :: portion (& self . location) ,] ,) } } pub struct ZodiacalTime { pub sign : ZodiacSign , pub degree : ZodiacDegree , pub minute : ZodiacMinute , } impl datomic :: Datomic for ZodiacalTime { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 3usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { sign : < ZodiacSign as datomic :: Datomic > :: embody (& parts [0usize]) ? , degree : < ZodiacDegree as datomic :: Datomic > :: embody (& parts [1usize]) ? , minute : < ZodiacMinute as datomic :: Datomic > :: embody (& parts [2usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . sign) , datomic :: Datomic :: portion (& self . degree) , datomic :: Datomic :: portion (& self . minute) ,] ,) } } pub type ErrorMessage = datomic :: DatomicString ; pub struct RequestSetLocation { pub latitude : Latitude , pub longitude : Longitude , } pub struct RequestSubscribe { pub kinds : Vec < SolarEventKind > , } pub enum Request { GetTime , GetSchedule , GetLocation , SetLocation (RequestSetLocation) , UseGeoclue , Subscribe (RequestSubscribe) , } impl datomic :: Datomic for Request { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (GetTime)) { return Ok (Self :: GetTime) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (GetSchedule)) { return Ok (Self :: GetSchedule) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (GetLocation)) { return Ok (Self :: GetLocation) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (SetLocation) && headed . separator == protos :: Separator :: Period { return Ok (Self :: SetLocation (< RequestSetLocation as datomic :: Datomic > :: embody (& headed . body) ?)) ; } if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (UseGeoclue)) { return Ok (Self :: UseGeoclue) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Subscribe) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Subscribe (< RequestSubscribe as datomic :: Datomic > :: embody (& headed . body) ?)) ; } Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) } fn portion (& self) -> protos :: Portion { match self { Self :: GetTime => datomic :: PortionBuilding :: bare (stringify ! (GetTime)) , Self :: GetSchedule => datomic :: PortionBuilding :: bare (stringify ! (GetSchedule)) , Self :: GetLocation => datomic :: PortionBuilding :: bare (stringify ! (GetLocation)) , Self :: SetLocation (value) => datomic :: PortionBuilding :: headed (stringify ! (SetLocation) , protos :: Separator :: Period , < RequestSetLocation as datomic :: Datomic > :: portion (value) ,) , Self :: UseGeoclue => datomic :: PortionBuilding :: bare (stringify ! (UseGeoclue)) , Self :: Subscribe (value) => datomic :: PortionBuilding :: headed (stringify ! (Subscribe) , protos :: Separator :: Period , < RequestSubscribe as datomic :: Datomic > :: portion (value) ,) , } } } impl datomic :: Datomic for RequestSetLocation { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 2usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { latitude : < Latitude as datomic :: Datomic > :: embody (& parts [0usize]) ? , longitude : < Longitude as datomic :: Datomic > :: embody (& parts [1usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . latitude) , datomic :: Datomic :: portion (& self . longitude) ,] ,) } } impl datomic :: Datomic for RequestSubscribe { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 1usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { kinds : < Vec < SolarEventKind > as datomic :: Datomic > :: embody (& parts [0usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . kinds) ,] ,) } } pub struct ResponseTime { pub zodiacal_time : ZodiacalTime , } pub struct ResponseSchedule { pub events : Vec < SolarEvent > , } pub struct ResponseLocation { pub location : Location , pub source : LocationSource , } pub struct ResponseEvent { pub event : SolarEvent , } pub struct ResponseError { pub message : ErrorMessage , } pub enum Response { Acked , Time (ResponseTime) , Schedule (ResponseSchedule) , Location (ResponseLocation) , Event (ResponseEvent) , Error (ResponseError) , } impl datomic :: Datomic for Response { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { if datomic :: PortionViewing :: bare_symbol (portion) == Some (stringify ! (Acked)) { return Ok (Self :: Acked) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Time) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Time (< ResponseTime as datomic :: Datomic > :: embody (& headed . body) ?)) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Schedule) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Schedule (< ResponseSchedule as datomic :: Datomic > :: embody (& headed . body) ?)) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Location) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Location (< ResponseLocation as datomic :: Datomic > :: embody (& headed . body) ?)) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Event) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Event (< ResponseEvent as datomic :: Datomic > :: embody (& headed . body) ?)) ; } if let Some (headed) = datomic :: PortionViewing :: headed (portion) && headed . head . as_ref () == stringify ! (Error) && headed . separator == protos :: Separator :: Period { return Ok (Self :: Error (< ResponseError as datomic :: Datomic > :: embody (& headed . body) ?)) ; } Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) } fn portion (& self) -> protos :: Portion { match self { Self :: Acked => datomic :: PortionBuilding :: bare (stringify ! (Acked)) , Self :: Time (value) => datomic :: PortionBuilding :: headed (stringify ! (Time) , protos :: Separator :: Period , < ResponseTime as datomic :: Datomic > :: portion (value) ,) , Self :: Schedule (value) => datomic :: PortionBuilding :: headed (stringify ! (Schedule) , protos :: Separator :: Period , < ResponseSchedule as datomic :: Datomic > :: portion (value) ,) , Self :: Location (value) => datomic :: PortionBuilding :: headed (stringify ! (Location) , protos :: Separator :: Period , < ResponseLocation as datomic :: Datomic > :: portion (value) ,) , Self :: Event (value) => datomic :: PortionBuilding :: headed (stringify ! (Event) , protos :: Separator :: Period , < ResponseEvent as datomic :: Datomic > :: portion (value) ,) , Self :: Error (value) => datomic :: PortionBuilding :: headed (stringify ! (Error) , protos :: Separator :: Period , < ResponseError as datomic :: Datomic > :: portion (value) ,) , } } } impl datomic :: Datomic for ResponseTime { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 1usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { zodiacal_time : < ZodiacalTime as datomic :: Datomic > :: embody (& parts [0usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . zodiacal_time) ,] ,) } } impl datomic :: Datomic for ResponseSchedule { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 1usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { events : < Vec < SolarEvent > as datomic :: Datomic > :: embody (& parts [0usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . events) ,] ,) } } impl datomic :: Datomic for ResponseLocation { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 2usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { location : < Location as datomic :: Datomic > :: embody (& parts [0usize]) ? , source : < LocationSource as datomic :: Datomic > :: embody (& parts [1usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . location) , datomic :: Datomic :: portion (& self . source) ,] ,) } } impl datomic :: Datomic for ResponseEvent { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 1usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { event : < SolarEvent as datomic :: Datomic > :: embody (& parts [0usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . event) ,] ,) } } impl datomic :: Datomic for ResponseError { fn embody (portion : & protos :: Portion) -> std :: result :: Result < Self , datomic :: Fault > { let Some (parts) = datomic :: PortionViewing :: structural (portion , protos :: StructuralEnclosure :: Braced ,) else { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Shape)) ; } ; if parts . len () != 1usize { return Err (datomic :: PortionViewing :: fault (portion , datomic :: FaultProblem :: Arity)) ; } Ok (Self { message : < ErrorMessage as datomic :: Datomic > :: embody (& parts [0usize]) ? , }) } fn portion (& self) -> protos :: Portion { datomic :: PortionBuilding :: structural ("" , protos :: StructuralEnclosure :: Braced , vec ! [datomic :: Datomic :: portion (& self . message) ,] ,) } } pub trait Datomic { fn embody (& self) -> Result < Self , Fault > ; fn portion (& self) -> protos :: Portion ; fn textualize (& self) -> protos :: Text < Self > ; }
+#![allow(dead_code)]
+#![allow(clippy::redundant_closure)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Request {
+    GetTime,
+    GetSchedule,
+    GetLocation,
+    SetLocation(RequestSetLocation),
+    UseGeoclue,
+    Subscribe(RequestSubscribe),
+}
+impl datom_codec::Datomic for Request {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let v = datom_codec::Sited::variant(site)?;
+        match v.name {
+            "GetTime" => {
+                datom_codec::Headed::nothing(v)?;
+                std::result::Result::Ok(Self::GetTime)
+            }
+            "GetSchedule" => {
+                datom_codec::Headed::nothing(v)?;
+                std::result::Result::Ok(Self::GetSchedule)
+            }
+            "GetLocation" => {
+                datom_codec::Headed::nothing(v)?;
+                std::result::Result::Ok(Self::GetLocation)
+            }
+            "SetLocation" => {
+                std::result::Result::Ok(
+                    Self::SetLocation(datom_codec::Carrying::body(v)?),
+                )
+            }
+            "UseGeoclue" => {
+                datom_codec::Headed::nothing(v)?;
+                std::result::Result::Ok(Self::UseGeoclue)
+            }
+            "Subscribe" => {
+                std::result::Result::Ok(Self::Subscribe(datom_codec::Carrying::body(v)?))
+            }
+            _ => {
+                std::result::Result::Err(
+                    datom_codec::Headed::reject(
+                        &v,
+                        datom_codec::Problem::UnknownVariant(
+                            protos::Word::try_from(v.name).expect("variant name"),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for Request {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                match self {
+                    Self::GetTime => {
+                        datom_codec::Datom::Word(
+                            datom_codec::DatomWord::try_from(
+                                    protos::Word::try_from("GetTime").expect("static variant"),
+                                )
+                                .expect("stable variant"),
+                        )
+                    }
+                    Self::GetSchedule => {
+                        datom_codec::Datom::Word(
+                            datom_codec::DatomWord::try_from(
+                                    protos::Word::try_from("GetSchedule")
+                                        .expect("static variant"),
+                                )
+                                .expect("stable variant"),
+                        )
+                    }
+                    Self::GetLocation => {
+                        datom_codec::Datom::Word(
+                            datom_codec::DatomWord::try_from(
+                                    protos::Word::try_from("GetLocation")
+                                        .expect("static variant"),
+                                )
+                                .expect("stable variant"),
+                        )
+                    }
+                    Self::SetLocation(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("SetLocation")
+                                .expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                    Self::UseGeoclue => {
+                        datom_codec::Datom::Word(
+                            datom_codec::DatomWord::try_from(
+                                    protos::Word::try_from("UseGeoclue")
+                                        .expect("static variant"),
+                                )
+                                .expect("stable variant"),
+                        )
+                    }
+                    Self::Subscribe(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Subscribe")
+                                .expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                },
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RequestSetLocation(pub super::Latitude, pub super::Longitude);
+impl datom_codec::Datomic for RequestSetLocation {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 2)?;
+        let p0: super::Latitude = datom_codec::Positional::position(&mut p)?;
+        let p1: super::Longitude = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0, p1))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for RequestSetLocation {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1,
+                        protos::Conceivable::conceive(& self.1)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RequestSubscribe(pub std::vec::Vec<super::SolarEventKind>);
+impl datom_codec::Datomic for RequestSubscribe {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 1)?;
+        let p0: std::vec::Vec<super::SolarEventKind> = datom_codec::Positional::position(
+            &mut p,
+        )?;
+        std::result::Result::Ok(Self(p0))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for RequestSubscribe {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Response {
+    Acked,
+    Time(ResponseTime),
+    Schedule(ResponseSchedule),
+    Location(ResponseLocation),
+    Event(ResponseEvent),
+    Error(ResponseError),
+}
+impl datom_codec::Datomic for Response {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let v = datom_codec::Sited::variant(site)?;
+        match v.name {
+            "Acked" => {
+                datom_codec::Headed::nothing(v)?;
+                std::result::Result::Ok(Self::Acked)
+            }
+            "Time" => {
+                std::result::Result::Ok(Self::Time(datom_codec::Carrying::body(v)?))
+            }
+            "Schedule" => {
+                std::result::Result::Ok(Self::Schedule(datom_codec::Carrying::body(v)?))
+            }
+            "Location" => {
+                std::result::Result::Ok(Self::Location(datom_codec::Carrying::body(v)?))
+            }
+            "Event" => {
+                std::result::Result::Ok(Self::Event(datom_codec::Carrying::body(v)?))
+            }
+            "Error" => {
+                std::result::Result::Ok(Self::Error(datom_codec::Carrying::body(v)?))
+            }
+            _ => {
+                std::result::Result::Err(
+                    datom_codec::Headed::reject(
+                        &v,
+                        datom_codec::Problem::UnknownVariant(
+                            protos::Word::try_from(v.name).expect("variant name"),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for Response {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                match self {
+                    Self::Acked => {
+                        datom_codec::Datom::Word(
+                            datom_codec::DatomWord::try_from(
+                                    protos::Word::try_from("Acked").expect("static variant"),
+                                )
+                                .expect("stable variant"),
+                        )
+                    }
+                    Self::Time(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Time").expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                    Self::Schedule(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Schedule")
+                                .expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                    Self::Location(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Location")
+                                .expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                    Self::Event(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Event").expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                    Self::Error(p0) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("Error").expect("static variant"),
+                            std::boxed::Box::new(
+                                protos::Conceivable::conceive(p0)
+                                    .expect("infallible datom ascent")
+                                    .1,
+                            ),
+                        )
+                    }
+                },
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResponseTime(pub super::ZodiacalTime);
+impl datom_codec::Datomic for ResponseTime {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 1)?;
+        let p0: super::ZodiacalTime = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for ResponseTime {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResponseSchedule(pub std::vec::Vec<super::SolarEvent>);
+impl datom_codec::Datomic for ResponseSchedule {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 1)?;
+        let p0: std::vec::Vec<super::SolarEvent> = datom_codec::Positional::position(
+            &mut p,
+        )?;
+        std::result::Result::Ok(Self(p0))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for ResponseSchedule {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResponseLocation(pub super::Location, pub super::LocationSource);
+impl datom_codec::Datomic for ResponseLocation {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 2)?;
+        let p0: super::Location = datom_codec::Positional::position(&mut p)?;
+        let p1: super::LocationSource = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0, p1))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for ResponseLocation {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1,
+                        protos::Conceivable::conceive(& self.1)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResponseEvent(pub super::SolarEvent);
+impl datom_codec::Datomic for ResponseEvent {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 1)?;
+        let p0: super::SolarEvent = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for ResponseEvent {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResponseError(pub super::ErrorMessage);
+impl datom_codec::Datomic for ResponseError {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 1)?;
+        let p0: super::ErrorMessage = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for ResponseError {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}

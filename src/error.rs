@@ -29,16 +29,11 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn from_fault(type_name: &'static str, fault: datomic::Fault) -> Self {
-        let problem = match fault.problem {
-            datomic::FaultProblem::Shape => "shape",
-            datomic::FaultProblem::Head => "head",
-            datomic::FaultProblem::Value => "value",
-            datomic::FaultProblem::Arity => "arity",
-            datomic::FaultProblem::MapPair => "map pair",
-            datomic::FaultProblem::DuplicateMapKey => "duplicate map key",
-            datomic::FaultProblem::UnrepresentableString => "unrepresentable string",
-            datomic::FaultProblem::Protos => "Protos",
+    pub fn from_fault(type_name: &'static str, fault: datom_codec::Fault) -> Self {
+        let problem = match fault {
+            datom_codec::Fault::Structural(_) => "structural",
+            datom_codec::Fault::Conceptual(_, _) => "conceptual",
+            datom_codec::Fault::Corporate(_, _) => "corporate",
         };
         Self::Datomic { type_name, problem }
     }

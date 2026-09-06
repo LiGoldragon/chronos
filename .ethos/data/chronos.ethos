@@ -1,29 +1,14 @@
-Schema.{0 2 0}
-[]
-Types.[
-  SolarEventKind.[CivilDawn Sunrise SolarNoon Sunset CivilDusk]
-  LocationSource.[Geoclue Manual]
-  ZodiacSign.[Aries Taurus Gemini Cancer Leo Virgo Libra Scorpio Sagittarius Capricorn Aquarius Pisces]
-  Location.{latitude.Latitude longitude.Longitude}
-  SolarEvent.{kind.SolarEventKind when.EpochTaiNanos location.Location}
-  ZodiacalTime.{sign.ZodiacSign degree.ZodiacDegree minute.ZodiacMinute}
-  ErrorMessage.String
-  Request.[
-    GetTime
-    GetSchedule
-    GetLocation
-    SetLocation.{latitude.Latitude longitude.Longitude}
-    UseGeoclue
-    Subscribe.{kinds.Vector<SolarEventKind>}
-  ]
-  Response.[
-    Acked
-    Time.{zodiacal_time.ZodiacalTime}
-    Schedule.{events.Vector<SolarEvent>}
-    Location.{location.Location source.LocationSource}
-    Event.{event.SolarEvent}
-    Error.{message.ErrorMessage}
-  ]
+Types
+[ super:[ Latitude Longitude SolarEventKind SolarEvent EpochTaiNanos ZodiacalTime Location LocationSource ErrorMessage ] ]
+[
+ Request.[ GetTime GetSchedule GetLocation SetLocation.RequestSetLocation UseGeoclue Subscribe.RequestSubscribe ]
+ RequestSetLocation.{ Latitude Longitude }
+ RequestSubscribe.{ Vector<SolarEventKind> }
+ Response.[ Acked Time.ResponseTime Schedule.ResponseSchedule Location.ResponseLocation Event.ResponseEvent Error.ResponseError ]
+ ResponseTime.{ ZodiacalTime }
+ ResponseSchedule.{ Vector<SolarEvent> }
+ ResponseLocation.{ Location LocationSource }
+ ResponseEvent.{ SolarEvent }
+ ResponseError.{ ErrorMessage }
 ]
-Kinds.[Datomic.{embody.[Result<Self Fault>] portion.[Portion] textualize.[Text<Self>]}]
-Associations.[]
+[]
