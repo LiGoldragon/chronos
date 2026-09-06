@@ -1,7 +1,7 @@
 //! The typed Datomic request accepted at Chronos's CLI boundary.
 
-use datom_codec::{Carrying, Datom, Datomic, Headed, IncorporationBudget, Positional, Sited};
-use protos::{Actualizable, Conceivable, Extent, Potential, Situated, Situation, Symbol};
+use datom_codec::{Actualizable, Datom, Datomic, Headed, IncorporationBudget, Positional, Sited};
+use protos::{Conceivable, Extent, Potential, Situated, Situation, Symbol};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::{

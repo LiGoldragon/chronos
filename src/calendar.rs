@@ -17,8 +17,8 @@
 
 use core::fmt;
 
-use datomic::{Datomic, DecimalViewing, Fault, FaultProblem, FiniteDecimal, PortionViewing};
-use protos::Portion;
+use datom_codec::{Datom, Datomic};
+use protos::{Conceivable, Extent, Opaque, Situated, Situation};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -50,16 +50,8 @@ impl fmt::Display for AmYear {
     }
 }
 
-impl Datomic for AmYear {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let value = i64::embody(portion)?;
-        i32::try_from(value).map(Self).map_err(|_| portion.fault(FaultProblem::Value))
-    }
-
-    fn portion(&self) -> Portion {
-        i64::from(self.0).portion()
-    }
-}
+impl Datomic for AmYear { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let extent = site.at.extent; let value = i64::from(protos::Integer::incorporate(site)?); i32::try_from(value).map(Self).map_err(|_| datom_codec::Fault::Corporate(datom_codec::Locus { path: vec![], extent }, datom_codec::Problem::Value(Opaque::from(value.to_string())))) } }
+impl Conceivable<Datom> for AmYear { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Integer::from(i64::from(self.0)).conceive() } }
 
 /// The sun's ecliptic longitude expressed as a fractional
 /// position in the year, in `[0.0, 1.0)` where `0.0` is
@@ -113,13 +105,5 @@ impl fmt::Display for OrdinalSolarTime {
     }
 }
 
-impl Datomic for OrdinalSolarTime {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let value = FiniteDecimal::embody(portion)?.value();
-        Self::try_new(value).map_err(|_| portion.fault(FaultProblem::Value))
-    }
-
-    fn portion(&self) -> Portion {
-        FiniteDecimal::try_from(self.0).expect("OrdinalSolarTime is finite").portion()
-    }
-}
+impl Datomic for OrdinalSolarTime { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let extent = site.at.extent; let value = f64::from(protos::Decimal::incorporate(site)?); Self::try_new(value).map_err(|_| datom_codec::Fault::Corporate(datom_codec::Locus { path: vec![], extent }, datom_codec::Problem::Value(Opaque::from(value.to_string())))) } }
+impl Conceivable<Datom> for OrdinalSolarTime { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Decimal::try_from(self.0).expect("finite ordinal time").conceive() } }

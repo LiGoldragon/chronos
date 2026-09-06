@@ -13,8 +13,8 @@
 
 use core::fmt;
 
-use datomic::{Datomic, DecimalViewing, Fault, FaultProblem, FiniteDecimal, PortionBuilding, PortionViewing};
-use protos::{Portion, StructuralEnclosure};
+use datom_codec::{Datom, Datomic, Headed, Positional, Sited};
+use protos::{Conceivable, Extent, Opaque, Situated, Situation};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};

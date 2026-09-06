@@ -1,7 +1,7 @@
 //! The typed Datomic response rendered by the Chronos CLI.
 
-use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing, Text, TextEdge};
-use protos::{Portion, Separator, StructuralEnclosure};
+use datom_codec::{Actualizable, Datom, Datomic, Headed, IncorporationBudget, Positional, Sited};
+use protos::{Conceivable, Extent, Potential, Situated, Situation, Symbol};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::{
@@ -18,7 +18,7 @@ pub struct ErrorMessage(String);
 impl ErrorMessage {
     /// Validate text before it becomes an outbound response payload.
     pub fn try_new(message: String) -> Result<Self> {
-        DatomicString::try_from(message.clone())
+        protos::Text::try_from(message.clone())
             .map(|_| Self(message))
             .map_err(|_| ChronosError::Datomic { type_name: "ErrorMessage", problem: "unrepresentable string" })
     }
@@ -28,15 +28,8 @@ impl ErrorMessage {
     }
 }
 
-impl Datomic for ErrorMessage {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
-    }
-
-    fn portion(&self) -> Portion {
-        DatomicString::try_from(self.0.clone()).expect("ErrorMessage construction proved representability").portion()
-    }
-}
+impl Datomic for ErrorMessage { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { Ok(Self(protos::Text::incorporate(site)?.as_ref().to_owned())) } }
+impl Conceivable<Datom> for ErrorMessage { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Text::try_from(self.0.clone()).expect("validated text").conceive() } }
 
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq)]
 pub enum Response {
@@ -50,11 +43,11 @@ pub enum Response {
 
 impl Response {
     pub fn from_text(source: &str) -> Result<Self> {
-        Text::<Self>::from(source).embody().map_err(|fault| ChronosError::from_fault("Response", fault))
+        Potential::<Self>::from(source).actualize(IncorporationBudget::try_from(4096).expect("positive reply budget")).map_err(|fault| ChronosError::from_fault("Response", fault))
     }
 
     pub fn to_text(&self) -> String {
-        self.textualize().as_ref().to_owned()
+        protos::Textualizable::textualize(self)
     }
 
     pub fn archive(&self) -> Result<Vec<u8>> {
@@ -68,66 +61,5 @@ impl Response {
     }
 }
 
-impl Datomic for Response {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        if portion.bare_symbol() == Some("Acked") {
-            return Ok(Self::Acked);
-        }
-        let Some(headed) = portion.headed() else {
-            return Err(portion.fault(FaultProblem::Shape));
-        };
-        if headed.separator != Separator::Period {
-            return Err(portion.fault(FaultProblem::Shape));
-        }
-        let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
-            return Err(headed.body.fault(FaultProblem::Shape));
-        };
-        match headed.head.as_ref() {
-            "Time" => {
-                let [time] = parts else {
-                    return Err(headed.body.fault(FaultProblem::Arity));
-                };
-                Ok(Self::Time { zodiacal_time: ZodiacalTime::embody(time)? })
-            }
-            "Schedule" => {
-                let [events] = parts else {
-                    return Err(headed.body.fault(FaultProblem::Arity));
-                };
-                Ok(Self::Schedule { events: Vec::<SolarEvent>::embody(events)? })
-            }
-            "Location" => {
-                let [location, source] = parts else {
-                    return Err(headed.body.fault(FaultProblem::Arity));
-                };
-                Ok(Self::Location { location: Location::embody(location)?, source: LocationSource::embody(source)? })
-            }
-            "Event" => {
-                let [event] = parts else {
-                    return Err(headed.body.fault(FaultProblem::Arity));
-                };
-                Ok(Self::Event { event: SolarEvent::embody(event)? })
-            }
-            "Error" => {
-                let [message] = parts else {
-                    return Err(headed.body.fault(FaultProblem::Arity));
-                };
-                Ok(Self::Error { message: ErrorMessage::embody(message)? })
-            }
-            _ => Err(portion.fault(FaultProblem::Shape)),
-        }
-    }
-
-    fn portion(&self) -> Portion {
-        let braced = |parts| "".structural(StructuralEnclosure::Braced, parts);
-        match self {
-            Self::Acked => "Acked".bare(),
-            Self::Time { zodiacal_time } => "Time".headed(Separator::Period, braced(vec![zodiacal_time.portion()])),
-            Self::Schedule { events } => "Schedule".headed(Separator::Period, braced(vec![events.portion()])),
-            Self::Location { location, source } => {
-                "Location".headed(Separator::Period, braced(vec![location.portion(), source.portion()]))
-            }
-            Self::Event { event } => "Event".headed(Separator::Period, braced(vec![event.portion()])),
-            Self::Error { message } => "Error".headed(Separator::Period, braced(vec![message.portion()])),
-        }
-    }
-}
+impl Datomic for Response { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let variant = site.variant()?; match variant.name { "Acked" => { Headed::nothing(variant)?; Ok(Self::Acked) }, "Time" => { let mut p = Headed::positions(variant, 1)?; Ok(Self::Time { zodiacal_time: p.position()? }) }, "Schedule" => { let mut p = Headed::positions(variant, 1)?; Ok(Self::Schedule { events: p.position()? }) }, "Location" => { let mut p = Headed::positions(variant, 2)?; Ok(Self::Location { location: p.position()?, source: p.position()? }) }, "Event" => { let mut p = Headed::positions(variant, 1)?; Ok(Self::Event { event: p.position()? }) }, "Error" => { let mut p = Headed::positions(variant, 1)?; Ok(Self::Error { message: p.position()? }) }, name => Err(variant.reject(datom_codec::Problem::UnknownVariant(protos::Word::try_from(name).expect("variant word")))) } } }
+impl Conceivable<Datom> for Response { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { let variant = |name, values: Vec<Datom>| Datom::Variant(Symbol::try_from(name).expect("static symbol"), Box::new(Datom::Struct(values))); let datom = match self { Self::Acked => Datom::Word(datom_codec::DatomWord::try_from("Acked").expect("static word")), Self::Time { zodiacal_time } => variant("Time", vec![zodiacal_time.conceive()?.1]), Self::Schedule { events } => variant("Schedule", vec![events.conceive()?.1]), Self::Location { location, source } => variant("Location", vec![location.conceive()?.1, source.conceive()?.1]), Self::Event { event } => variant("Event", vec![event.conceive()?.1]), Self::Error { message } => variant("Error", vec![message.conceive()?.1]) }; Ok(Situated(Situation { extent: Extent(0, 0), children: vec![] }, datom)) } }

@@ -11,9 +11,9 @@
 //! of these kinds and reacts (e.g. start a 60-minute warmth
 //! ramp at `CivilDusk`).
 
-use datomic::{Datomic, Fault, FaultProblem, PortionBuilding, PortionViewing};
+use datom_codec::{Datom, Datomic, Headed, Positional, Sited};
 use hifitime::Epoch;
-use protos::{Portion, StructuralEnclosure};
+use protos::{Conceivable, Extent, Situated, Situation};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::location::Location;
@@ -41,24 +41,19 @@ pub enum SolarEventKind {
 }
 
 impl Datomic for SolarEventKind {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        match portion.bare_symbol() {
-            Some("CivilDawn") => Ok(Self::CivilDawn),
-            Some("Sunrise") => Ok(Self::Sunrise),
-            Some("SolarNoon") => Ok(Self::SolarNoon),
-            Some("Sunset") => Ok(Self::Sunset),
-            Some("CivilDusk") => Ok(Self::CivilDusk),
-            _ => Err(portion.fault(FaultProblem::Shape)),
-        }
+    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
+        let variant = site.variant()?;
+        let value = match variant.name { "CivilDawn" => Self::CivilDawn, "Sunrise" => Self::Sunrise, "SolarNoon" => Self::SolarNoon, "Sunset" => Self::Sunset, "CivilDusk" => Self::CivilDusk, name => return Err(variant.reject(datom_codec::Problem::UnknownVariant(protos::Word::try_from(name).expect("variant word")))) };
+        Headed::nothing(variant)?;
+        Ok(value)
     }
-    fn portion(&self) -> Portion {
-        match self {
-            Self::CivilDawn => "CivilDawn".bare(),
-            Self::Sunrise => "Sunrise".bare(),
-            Self::SolarNoon => "SolarNoon".bare(),
-            Self::Sunset => "Sunset".bare(),
-            Self::CivilDusk => "CivilDusk".bare(),
-        }
+}
+
+impl Conceivable<Datom> for SolarEventKind {
+    type Fault = core::convert::Infallible;
+    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
+        let word = match self { Self::CivilDawn => "CivilDawn", Self::Sunrise => "Sunrise", Self::SolarNoon => "SolarNoon", Self::Sunset => "Sunset", Self::CivilDusk => "CivilDusk" };
+        Ok(Situated(Situation { extent: Extent(0, 0), children: vec![] }, Datom::Word(datom_codec::DatomWord::try_from(word).expect("static word"))))
     }
 }
 
@@ -88,14 +83,8 @@ impl EpochTaiNanos {
     }
 }
 
-impl Datomic for EpochTaiNanos {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        Ok(Self(i64::embody(portion)?))
-    }
-    fn portion(&self) -> Portion {
-        self.0.portion()
-    }
-}
+impl Datomic for EpochTaiNanos { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { Ok(Self(i64::from(protos::Integer::incorporate(site)?))) } }
+impl Conceivable<Datom> for EpochTaiNanos { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { protos::Integer::from(self.0).conceive() } }
 
 /// A pushed event — what fires, when, and where the observer
 /// was when it was scheduled.
@@ -106,24 +95,5 @@ pub struct SolarEvent {
     pub location: Location,
 }
 
-impl Datomic for SolarEvent {
-    fn embody(portion: &Portion) -> core::result::Result<Self, Fault> {
-        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
-            return Err(portion.fault(FaultProblem::Shape));
-        };
-        let [kind, when, location] = parts else {
-            return Err(portion.fault(FaultProblem::Arity));
-        };
-        Ok(Self {
-            kind: SolarEventKind::embody(kind)?,
-            when: EpochTaiNanos::embody(when)?,
-            location: Location::embody(location)?,
-        })
-    }
-    fn portion(&self) -> Portion {
-        "".structural(
-            StructuralEnclosure::Braced,
-            vec![self.kind.portion(), self.when.portion(), self.location.portion()],
-        )
-    }
-}
+impl Datomic for SolarEvent { fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> { let mut p = site.positions(3)?; Ok(Self { kind: p.position()?, when: p.position()?, location: p.position()? }) } }
+impl Conceivable<Datom> for SolarEvent { type Fault = core::convert::Infallible; fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> { Ok(Situated(Situation { extent: Extent(0, 0), children: vec![] }, Datom::Struct(vec![self.kind.conceive()?.1, self.when.conceive()?.1, self.location.conceive()?.1]))) } }
