@@ -223,7 +223,7 @@ impl ZodiacDegree {
 impl Datomic for ZodiacDegree {
     fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
         let extent = site.at.extent;
-        let value = i64::from(protos::Integer::incorporate(site)?);
+        let value: i64 = protos::Integer::incorporate(site)?;
         u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
             datom_codec::Fault::Corporate(
                 datom_codec::Locus { path: vec![], extent },
@@ -262,7 +262,7 @@ impl ZodiacMinute {
 impl Datomic for ZodiacMinute {
     fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
         let extent = site.at.extent;
-        let value = i64::from(protos::Integer::incorporate(site)?);
+        let value: i64 = protos::Integer::incorporate(site)?;
         u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
             datom_codec::Fault::Corporate(
                 datom_codec::Locus { path: vec![], extent },

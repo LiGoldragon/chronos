@@ -105,7 +105,7 @@ impl EpochTaiNanos {
 
 impl Datomic for EpochTaiNanos {
     fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        Ok(Self(i64::from(protos::Integer::incorporate(site)?)))
+        Ok(Self(protos::Integer::incorporate(site)?))
     }
 }
 impl Conceivable<Datom> for EpochTaiNanos {

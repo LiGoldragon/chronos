@@ -53,7 +53,7 @@ impl fmt::Display for AmYear {
 impl Datomic for AmYear {
     fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
         let extent = site.at.extent;
-        let value = i64::from(protos::Integer::incorporate(site)?);
+        let value: i64 = protos::Integer::incorporate(site)?;
         i32::try_from(value).map(Self).map_err(|_| {
             datom_codec::Fault::Corporate(
                 datom_codec::Locus { path: vec![], extent },
