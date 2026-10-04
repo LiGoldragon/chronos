@@ -1,103 +1,173 @@
-//! The daemon entry point.
-//!
-//! Skeleton — the real implementation wires:
-//!
-//! - the redb store (one row: `LocationSource`);
-//! - the [`Sky`](crate::sky::Sky) loader (DE440 via `anise`);
-//! - the LocationTracker (zbus to `geoclue2` or persisted
-//!   manual override);
-//! - the `EventScheduler` (next-fire deadline per kind,
-//!   `tokio::time::sleep_until`-driven; per
-//!   `~/primary/skills/push-not-pull.md`);
-//! - the `SubscriptionHub` (live subscriber set + cursors);
-//! - the UDS server at `/run/chronos/<uid>.sock`.
-//!
-//! Each connection: read one [`Request`] frame; if it's a
-//! one-shot verb, write one [`Response`] frame and close;
-//! if it's `Subscribe`, register with the hub and stream
-//! `Event` frames until the peer disconnects.
+//! Chronos's concrete parts for the standard Nexus entry point.
 
-use tokio::net::{UnixListener, UnixStream};
+use std::path::PathBuf;
 
-use crate::error::Result;
+use nexus::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Signaling};
+use redb::{Database, ReadableDatabase, TableDefinition};
+
+use crate::location::{Location, LocationSource};
 use crate::request::Request;
-use crate::response::{ErrorMessage, Response};
-use crate::wire::{read_frame, socket_path, write_frame};
+use crate::response::Response;
+use crate::wire::socket_path;
 
-/// Run the daemon until SIGTERM / Ctrl-C.
-pub async fn run() -> Result<()> {
-    let path = socket_path();
-    if path.exists() {
-        std::fs::remove_file(&path)?;
+const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("location");
+const CURRENT_LOCATION: &str = "current";
+
+/// Chronos's whole Nexus.
+///
+/// Signal code cannot construct the admission that opens memory:
+///
+/// ```compile_fail,E0451
+/// let _ = nexus::Admission { directory: "/tmp".into() };
+/// ```
+///
+/// It cannot construct a memory handle:
+///
+/// ```compile_fail,E0451
+/// fn reach<M: nexus::Remembering>() -> nexus::MemoryHandle<M> {
+///     nexus::MemoryHandle { actor: todo!() }
+/// }
+/// ```
+///
+/// Nor can it follow its operation handle to the operation actor:
+///
+/// ```compile_fail,E0616
+/// fn reach<N: nexus::Nexus>(operation: &nexus::OperationHandle<N>) {
+///     let _ = &operation.actor;
+/// }
+/// ```
+pub struct Chronos;
+
+struct ChronosSignal;
+
+impl Signaling for ChronosSignal {
+    type Query = Request;
+    type Response = Response;
+    type Operation = Operation;
+    type Outcome = Outcome;
+
+    fn decode(&self, frame: &[u8]) -> Option<Self::Query> {
+        Request::from_archive(frame).ok()
     }
-    let listener = UnixListener::bind(&path)?;
-    eprintln!("chronos-daemon listening on {}", path.display());
 
-    let shutdown = tokio::signal::ctrl_c();
-    tokio::pin!(shutdown);
+    fn encode(&self, response: Self::Response) -> Vec<u8> {
+        response.archive().unwrap_or_default()
+    }
 
-    loop {
-        tokio::select! {
-            biased;
-            _ = &mut shutdown => {
-                eprintln!("chronos-daemon shutting down");
-                break;
-            }
-            accepted = listener.accept() => {
-                let (stream, _addr) = accepted?;
-                tokio::spawn(async move {
-                    if let Err(error) = serve_connection(stream).await {
-                        eprintln!("chronos-daemon connection error: {error}");
-                    }
-                });
-            }
+    fn intend(&self, query: Self::Query) -> Self::Operation {
+        match query {
+            Request::SetLocation { latitude, longitude } => Operation::SetLocation(Location { latitude, longitude }),
+            Request::GetLocation => Operation::GetLocation,
+            _ => Operation::Unsupported,
         }
     }
 
-    let _ = std::fs::remove_file(&path);
-    Ok(())
+    fn answer(&self, outcome: Self::Outcome) -> Self::Response {
+        match outcome {
+            Outcome::Set => Response::Acked,
+            Outcome::Location(location) => Response::Location { location, source: LocationSource::Manual },
+            Outcome::Error(message) => Response::Error { message },
+        }
+    }
+
+    fn undecodable(&self) -> Self::Response {
+        Response::Error { message: "undecodable request".into() }
+    }
 }
 
-// TODO(chronos-impl): both `serve_connection` and
-// `dispatch_one_shot` are free functions doing real work on
-// typed values — provisional only. Per
-// `~/primary/skills/abstractions.md` §"Verb belongs to noun",
-// the implementation phase attaches them to typed nouns:
-// `Daemon` (owns the listener + state stores), `Connection`
-// (owns one stream + its protocol state), and `SubscriptionHub`
-// (owns the live subscriber set).
-
-async fn serve_connection(mut stream: UnixStream) -> Result<()> {
-    let frame = read_frame(&mut stream).await?;
-    let request = Request::from_archive(&frame)?;
-    match request {
-        Request::Subscribe { .. } => {
-            // TODO(chronos-impl): register with SubscriptionHub
-            // and stream Event frames until disconnect, per
-            // ~/primary/skills/push-not-pull.md §"Subscription
-            // contract" — emit current schedule first, then
-            // deltas at deadline fires.
-            let response = Response::Error { message: ErrorMessage::try_new("Subscribe not yet implemented".into())? };
-            let archive = response.archive()?;
-            write_frame(&mut stream, &archive).await?;
-        }
-        other => {
-            let response = dispatch_one_shot(other);
-            let archive = response.archive()?;
-            write_frame(&mut stream, &archive).await?;
-        }
-    }
-    Ok(())
+struct ChronosMemory {
+    database: Database,
 }
 
-fn dispatch_one_shot(request: Request) -> Response {
-    // TODO(chronos-impl): route through the Observer + Sky
-    // (DE440 + Location) for GetTime / GetSchedule, the
-    // StateStore for GetLocation / SetLocation / UseGeoclue.
-    // The skeleton answers every verb with `Error` so the
-    // wire shape is exercised before the astronomy lands.
-    Response::Error {
-        message: ErrorMessage::try_new(format!("not yet implemented: {}", request.to_text()))
-            .expect("a canonical Request produces representable diagnostic text"),
+enum Change {
+    SetLocation(Location),
+}
+
+struct CurrentLocation;
+
+impl Remembering for ChronosMemory {
+    type Change = Change;
+    type Reading = CurrentLocation;
+    type Remembered = Option<Location>;
+
+    fn open(admission: Admission) -> Option<Self> {
+        std::fs::create_dir_all(admission.directory()).ok()?;
+        Database::create(admission.directory().join("state.redb")).ok().map(|database| Self { database })
+    }
+
+    fn change(&mut self, change: Self::Change) -> Changed {
+        let Change::SetLocation(location) = change;
+        let Ok(bytes) = rkyv::to_bytes::<rkyv::rancor::Error>(&location) else {
+            return Changed::Failed;
+        };
+        let written = self.database.begin_write().ok().and_then(|transaction| {
+            transaction.open_table(LOCATIONS).ok()?.insert(CURRENT_LOCATION, bytes.as_slice()).ok()?;
+            transaction.commit().ok()
+        });
+        if written.is_some() { Changed::Succeeded } else { Changed::Failed }
+    }
+
+    fn read(&self, _: Self::Reading) -> Self::Remembered {
+        let transaction = self.database.begin_read().ok()?;
+        let table = transaction.open_table(LOCATIONS).ok()?;
+        let bytes = table.get(CURRENT_LOCATION).ok()??;
+        rkyv::from_bytes::<Location, rkyv::rancor::Error>(bytes.value()).ok()
+    }
+}
+
+enum Operation {
+    SetLocation(Location),
+    GetLocation,
+    Unsupported,
+}
+
+enum Outcome {
+    Set,
+    Location(Location),
+    Error(String),
+}
+
+struct ChronosOperation;
+
+impl Operating<ChronosMemory> for ChronosOperation {
+    type Operation = Operation;
+    type Outcome = Outcome;
+
+    async fn perform(&mut self, operation: Self::Operation, memory: &MemoryHandle<ChronosMemory>) -> Self::Outcome {
+        match operation {
+            Operation::SetLocation(location) => match memory.change(Change::SetLocation(location)).await {
+                Changed::Succeeded => Outcome::Set,
+                Changed::Failed => Outcome::Error("location store refused the change".into()),
+            },
+            Operation::GetLocation => match memory.read(CurrentLocation).await {
+                Some(Some(location)) => Outcome::Location(location),
+                Some(None) => Outcome::Error("location is not set".into()),
+                None => Outcome::Error("location store refused the read".into()),
+            },
+            Operation::Unsupported => Outcome::Error("request is outside the entry experiment".into()),
+        }
+    }
+}
+
+impl Nexus for Chronos {
+    type Memory = ChronosMemory;
+    type Operation = ChronosOperation;
+    type Signal = ChronosSignal;
+
+    fn signal() -> Self::Signal {
+        ChronosSignal
+    }
+    fn operation() -> Self::Operation {
+        ChronosOperation
+    }
+
+    fn directory() -> PathBuf {
+        std::env::var_os("CHRONOS_STATE_DIRECTORY")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| std::env::temp_dir().join("chronos"))
+    }
+
+    fn socket_path() -> PathBuf {
+        socket_path()
     }
 }

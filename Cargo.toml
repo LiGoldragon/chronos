@@ -33,6 +33,8 @@ solar-positioning = "0.5"
 
 # Persistence — one row: LocationSource override
 redb = "4"
+nexus = { git = "https://github.com/LiGoldragon/nexus.git", rev = "ec097e315a3b0b99bc215a72f6c3f6d8b2b060cf" }
 
 [dev-dependencies]
+tempfile = "3"
 ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "bcf728bbe4521e663f4773d3c1fd4ebb643df32e" }
