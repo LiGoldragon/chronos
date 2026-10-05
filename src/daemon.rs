@@ -38,7 +38,8 @@ const CURRENT_LOCATION: &str = "current";
 /// ```
 pub struct Chronos;
 
-struct ChronosSignal;
+/// The signal implementation selected by [`Chronos`].
+pub struct ChronosSignal;
 
 impl Signaling for ChronosSignal {
     type Query = Request;
@@ -80,15 +81,16 @@ impl Signaling for ChronosSignal {
     }
 }
 
-struct ChronosMemory {
+/// The redb-backed memory implementation selected by [`Chronos`].
+pub struct ChronosMemory {
     database: Database,
 }
 
-enum Change {
+pub enum Change {
     SetLocation(Location),
 }
 
-struct CurrentLocation;
+pub struct CurrentLocation;
 
 impl Remembering for ChronosMemory {
     type Change = Change;
@@ -120,19 +122,20 @@ impl Remembering for ChronosMemory {
     }
 }
 
-enum Operation {
+pub enum Operation {
     SetLocation(Location),
     GetLocation,
     Unsupported,
 }
 
-enum Outcome {
+pub enum Outcome {
     Set,
     Location(Location),
     Error(String),
 }
 
-struct ChronosOperation;
+/// The operation implementation selected by [`Chronos`].
+pub struct ChronosOperation;
 
 impl Operating<ChronosMemory> for ChronosOperation {
     type Operation = Operation;
