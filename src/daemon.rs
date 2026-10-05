@@ -7,7 +7,7 @@ use redb::{Database, ReadableDatabase, TableDefinition};
 
 use crate::location::{Location, LocationSource};
 use crate::request::Request;
-use crate::response::Response;
+use crate::response::{ErrorMessage, Response};
 use crate::wire::socket_path;
 
 const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("location");
@@ -66,12 +66,17 @@ impl Signaling for ChronosSignal {
         match outcome {
             Outcome::Set => Response::Acked,
             Outcome::Location(location) => Response::Location { location, source: LocationSource::Manual },
-            Outcome::Error(message) => Response::Error { message },
+            Outcome::Error(message) => Response::Error {
+                message: ErrorMessage::try_new(message).expect("operation error message is representable"),
+            },
         }
     }
 
     fn undecodable(&self) -> Self::Response {
-        Response::Error { message: "undecodable request".into() }
+        Response::Error {
+            message: ErrorMessage::try_new("undecodable request".into())
+                .expect("static error message is representable"),
+        }
     }
 }
 
