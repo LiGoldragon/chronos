@@ -73,7 +73,7 @@ where
 /// `/run/chronos/<uid>.sock` if the directory is reachable;
 /// otherwise `/tmp/chronos-<uid>.sock`.
 pub fn socket_path() -> std::path::PathBuf {
-    if let Ok(explicit) = std::env::var("CHRONOS_SOCKET") {
+    if let Some(explicit) = std::env::var_os("CHRONOS_SOCKET") {
         return std::path::PathBuf::from(explicit);
     }
     let uid = unsafe { libc_uid() };
