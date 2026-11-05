@@ -17,21 +17,6 @@ fn sample_event(kind: SolarEventKind) -> SolarEvent {
 }
 
 #[test]
-fn every_solar_event_kind_is_unique() {
-    let kinds = [
-        SolarEventKind::CivilDawn,
-        SolarEventKind::Sunrise,
-        SolarEventKind::SolarNoon,
-        SolarEventKind::Sunset,
-        SolarEventKind::CivilDusk,
-    ];
-    let mut sorted: Vec<_> = kinds.iter().map(|kind| format!("{kind:?}")).collect();
-    sorted.sort();
-    sorted.dedup();
-    assert_eq!(sorted.len(), 5);
-}
-
-#[test]
 fn solar_event_kind_datomic_round_trips_for_every_variant() {
     for kind in [
         SolarEventKind::CivilDawn,

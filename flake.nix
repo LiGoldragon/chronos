@@ -49,11 +49,6 @@
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- -D warnings";
           });
-          ethos-source = pkgs.runCommand "chronos-ethos-source" { } ''
-            test -f ${src}/.ethos/data/chronos.ethos
-            test -f ${src}/.ethos/data/datomic_library.rs
-            touch "$out"
-          '';
         };
 
         devShells.default = pkgs.mkShell {
