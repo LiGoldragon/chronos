@@ -1,6 +1,6 @@
 //! Chronos's concrete parts for the standard Nexus entry point.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use nexus::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Signaling};
 use redb::{Database, ReadableDatabase, TableDefinition};
@@ -86,6 +86,77 @@ pub struct ChronosMemory {
     database: Database,
 }
 
+/// The durable file names accepted while opening Chronos memory.
+pub struct MemoryPaths {
+    pub current: PathBuf,
+    pub legacy_sema: PathBuf,
+    pub legacy_redb: PathBuf,
+}
+
+/// More than one durable Chronos memory exists in one state directory.
+#[derive(Debug, PartialEq, Eq)]
+pub struct MemoryPathConflict {
+    pub paths: Vec<PathBuf>,
+}
+
+/// A typed failure to open Chronos memory.
+#[derive(Debug, thiserror::Error)]
+pub enum MemoryOpenError {
+    #[error("several Chronos memory files exist: {0:?}")]
+    PathConflict(MemoryPathConflict),
+    #[error("failed to migrate Chronos memory from {from:?} to {to:?}: {source}")]
+    Migration { from: PathBuf, to: PathBuf, source: std::io::Error },
+    #[error("failed to open Chronos memory at {path:?}: {source}")]
+    Database { path: PathBuf, source: redb::DatabaseError },
+}
+
+/// Resolves the current and legacy durable names for Chronos memory.
+pub trait LocatingMemory {
+    fn memory_paths(&self) -> MemoryPaths;
+}
+
+impl LocatingMemory for Path {
+    fn memory_paths(&self) -> MemoryPaths {
+        MemoryPaths {
+            current: self.join("state.memory"),
+            legacy_sema: self.join("state.sema"),
+            legacy_redb: self.join("state.redb"),
+        }
+    }
+}
+
+/// Opens Chronos memory while migrating a sole legacy durable name.
+pub trait OpeningMemory: Sized {
+    fn open_memory(directory: &Path) -> Result<Self, MemoryOpenError>;
+}
+
+impl OpeningMemory for ChronosMemory {
+    fn open_memory(directory: &Path) -> Result<Self, MemoryOpenError> {
+        let paths = directory.memory_paths();
+        let present: Vec<PathBuf> = [&paths.current, &paths.legacy_sema, &paths.legacy_redb]
+            .into_iter()
+            .filter(|path| path.exists())
+            .cloned()
+            .collect();
+        let path = match present.as_slice() {
+            [] => paths.current,
+            [path] if *path == paths.current => paths.current,
+            [legacy] => {
+                std::fs::rename(legacy, &paths.current).map_err(|source| MemoryOpenError::Migration {
+                    from: legacy.clone(),
+                    to: paths.current.clone(),
+                    source,
+                })?;
+                paths.current
+            }
+            _ => return Err(MemoryOpenError::PathConflict(MemoryPathConflict { paths: present })),
+        };
+        Database::create(&path)
+            .map(|database| Self { database })
+            .map_err(|source| MemoryOpenError::Database { path, source })
+    }
+}
+
 pub enum Change {
     SetLocation(Location),
 }
@@ -99,7 +170,7 @@ impl Remembering for ChronosMemory {
 
     fn open(admission: Admission) -> Option<Self> {
         std::fs::create_dir_all(admission.directory()).ok()?;
-        Database::create(admission.directory().join("state.redb")).ok().map(|database| Self { database })
+        Self::open_memory(admission.directory()).ok()
     }
 
     fn change(&mut self, change: Self::Change) -> Changed {

@@ -1,5 +1,12 @@
 # Upgrades
 
+## Durable Memory name
+
+Chronos stores its redb-backed Memory in `state.memory`. On first open, a sole
+legacy `state.sema` or `state.redb` file is renamed to `state.memory`, preserving
+its records. If several of these paths exist, Chronos refuses to choose between
+them and reports a typed path conflict.
+
 ## 0.3.0 — current Datom and Ethos boundary
 
 Version 0.3.0 is a breaking textual-boundary release.

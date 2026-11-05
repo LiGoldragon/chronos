@@ -76,7 +76,7 @@ Chronos does **not** own:
 | Layer | Where | What |
 |---|---|---|
 | Static | DE440 file (`/usr/share/chronos/de440s.bsp` or vendored) | Ephemeris bytes; never written |
-| Persistent | `$XDG_STATE_HOME/chronos/state.redb` | One row: `LocationSource` (manual override or `Geoclue`) |
+| Persistent | `$XDG_STATE_HOME/chronos/state.memory` | One row: `LocationSource` (manual override or `Geoclue`) |
 | Live | In-process | The `Sky` (loaded ephemeris), the `Observer` (sky + location), the active subscriber set, the next-event deadlines |
 
 Most state is *live*. The daemon recomputes from DE440 + the
@@ -134,7 +134,10 @@ current time + DE440 ⇒ everything else.
 
 ## Persistence
 
-`$XDG_STATE_HOME/chronos/state.redb` — one redb file. Tables:
+`$XDG_STATE_HOME/chronos/state.memory` — one redb file. A sole legacy
+`state.sema` or `state.redb` file is renamed on open so its records remain
+readable. Multiple names in one state directory are an explicit conflict.
+Tables:
 
 | Table | Key | Value |
 |---|---|---|
