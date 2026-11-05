@@ -165,8 +165,8 @@ impl EclipticLongitude {
     /// `[0.0, 360.0)`. For astronomical computations whose
     /// output is unbounded; the wire-side strict constructor is
     /// [`Self::try_new`].
-    pub fn from_unnormalized_degrees(degrees: f64) -> Self {
-        Self(degrees.rem_euclid(360.0))
+    pub fn from_unnormalized_degrees(degrees: f64) -> Result<Self> {
+        Self::try_new(degrees.rem_euclid(360.0))
     }
 
     /// The longitude in degrees, in `[0.0, 360.0)`.

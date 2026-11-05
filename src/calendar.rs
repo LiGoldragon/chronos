@@ -95,12 +95,12 @@ impl OrdinalSolarTime {
     }
 
     /// Construct by wrapping any finite fraction into `[0.0, 1.0)`.
-    pub fn from_unnormalized_fraction(fraction: f64) -> Self {
-        Self(fraction.rem_euclid(1.0))
+    pub fn from_unnormalized_fraction(fraction: f64) -> Result<Self> {
+        Self::try_new(fraction.rem_euclid(1.0))
     }
 
     /// Construct from a year fraction in degrees.
-    pub fn from_unnormalized_degrees(degrees: f64) -> Self {
+    pub fn from_unnormalized_degrees(degrees: f64) -> Result<Self> {
         Self::from_unnormalized_fraction(degrees / 360.0)
     }
 

@@ -45,16 +45,22 @@ fn ordinal_solar_time_negative_rejected() {
 
 #[test]
 fn ordinal_solar_time_from_unnormalized_wraps() {
-    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(1.0).as_fraction(), 0.0);
-    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(2.5).as_fraction(), 0.5);
-    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(-0.25).as_fraction(), 0.75);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(1.0).unwrap().as_fraction(), 0.0);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(2.5).unwrap().as_fraction(), 0.5);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_fraction(-0.25).unwrap().as_fraction(), 0.75);
 }
 
 #[test]
 fn ordinal_solar_time_from_unnormalized_degrees_converts() {
-    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(0.0).as_fraction(), 0.0);
-    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(180.0).as_fraction(), 0.5);
-    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(360.0).as_fraction(), 0.0);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(0.0).unwrap().as_fraction(), 0.0);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(180.0).unwrap().as_fraction(), 0.5);
+    assert_eq!(OrdinalSolarTime::from_unnormalized_degrees(360.0).unwrap().as_fraction(), 0.0);
+}
+
+#[test]
+fn ordinal_solar_time_normalization_rejects_nonfinite_values() {
+    assert!(OrdinalSolarTime::from_unnormalized_fraction(f64::NAN).is_err());
+    assert!(OrdinalSolarTime::from_unnormalized_degrees(f64::INFINITY).is_err());
 }
 
 #[test]

@@ -93,9 +93,15 @@ fn ecliptic_longitude_negative_rejected() {
 
 #[test]
 fn ecliptic_longitude_from_unnormalized_wraps() {
-    assert_eq!(EclipticLongitude::from_unnormalized_degrees(360.0).as_degrees(), 0.0);
-    assert_eq!(EclipticLongitude::from_unnormalized_degrees(720.5).as_degrees(), 0.5);
-    assert_eq!(EclipticLongitude::from_unnormalized_degrees(-1.0).as_degrees(), 359.0);
+    assert_eq!(EclipticLongitude::from_unnormalized_degrees(360.0).unwrap().as_degrees(), 0.0);
+    assert_eq!(EclipticLongitude::from_unnormalized_degrees(720.5).unwrap().as_degrees(), 0.5);
+    assert_eq!(EclipticLongitude::from_unnormalized_degrees(-1.0).unwrap().as_degrees(), 359.0);
+}
+
+#[test]
+fn ecliptic_longitude_normalization_rejects_nonfinite_values() {
+    assert!(EclipticLongitude::from_unnormalized_degrees(f64::NAN).is_err());
+    assert!(EclipticLongitude::from_unnormalized_degrees(f64::NEG_INFINITY).is_err());
 }
 
 #[test]
