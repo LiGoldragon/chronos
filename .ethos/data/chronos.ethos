@@ -1,6 +1,10 @@
 Types
-[ super:[ Latitude Longitude SolarEventKind SolarEvent EpochTaiNanos ZodiacalTime Location LocationSource ErrorMessage ] ]
+[ super:[ Latitude Longitude SolarEventKind SolarEvent EpochTaiNanos ZodiacalTime Location LocationSource ErrorMessage String ] ]
 [
+ PlaceName.String
+ Runtime.String
+ State.String
+ Place.{ PlaceName Runtime State }
  Request.[ GetTime GetSchedule GetLocation SetLocation.RequestSetLocation UseGeoclue Subscribe.RequestSubscribe ]
  RequestSetLocation.{ Latitude Longitude }
  RequestSubscribe.{ Vector<SolarEventKind> }

@@ -76,7 +76,7 @@ Chronos does **not** own:
 | Layer | Where | What |
 |---|---|---|
 | Static | DE440 file (`/usr/share/chronos/de440s.bsp` or vendored) | Ephemeris bytes; never written |
-| Persistent | `$XDG_STATE_HOME/chronos/state.memory` | One row: `LocationSource` (manual override or `Geoclue`) |
+| Persistent | `<Place.State>/state.memory` | One row: `LocationSource` (manual override or `Geoclue`) |
 | Live | In-process | The `Sky` (loaded ephemeris), the `Observer` (sky + location), the active subscriber set, the next-event deadlines |
 
 Most state is *live*. The daemon recomputes from DE440 + the
@@ -93,7 +93,7 @@ Supervisor
 ├── EventScheduler                   (next-fire deadline per kind; timerfd)
 │   └── …pushes SolarEvent to SubscriptionHub
 ├── SubscriptionHub                  (live subscribers + their cursors)
-└── SocketServer                     (UDS at /run/chronos/<uid>.sock)
+└── SocketServer                     (UDS at <Place.Runtime>/chronos.sock)
 ```
 
 Per workspace Kameo discipline: each actor is a data-bearing noun,
@@ -106,9 +106,7 @@ runtime root. Children spawn through supervised parent builders.
 Daemon ↔ CLI / chroma is the **signal pattern** documented in
 `~/primary/repos/signal`:
 
-- **Transport:** Unix domain socket at
-  `/run/chronos/<uid>.sock`. CriomOS owns the directory + the
-  `chronos` group at mode 0770 (same shape as chroma).
+- **Transport:** Unix domain socket at `<Place.Runtime>/chronos.sock`.
 - **Framing:** 4-byte big-endian length, then the rkyv archive.
 - **Request:** `Request` enum (one variant per CLI verb).
 - **Reply:** `Response` enum (`Time`, `Location`, `Schedule`,
@@ -122,19 +120,27 @@ event stream.
 
 ## Configuration
 
-There is no text config file. The two configurable values are:
+The daemon starts with one typed place datom:
+
+```datom
+{ main /run/user/1001/nexus/main /home/li/.local/state/nexus/main }
+```
+
+Its fields are the place name, runtime directory, and Memory state directory.
+The CLI's fixed `main` default resolves those same directories from the standard
+XDG runtime and home anchors. Other configurable values include:
 
 - **Location** — set via `chronos 'SetLocation.{<lat> <lon>}'`
   (persisted) or auto-detected via `geoclue2` (default).
 - **Ephemeris path** — defaults to `de440s.bsp` shipped with
-  the package; overridable via `CHRONOS_EPHEMERIS=<path>`.
+  the package; a future typed configuration field may select another file.
 
 Most chronos behaviour is observer-driven: location +
 current time + DE440 ⇒ everything else.
 
 ## Persistence
 
-`$XDG_STATE_HOME/chronos/state.memory` — one redb file. A sole legacy
+`<Place.State>/state.memory` — one redb file. A sole legacy
 `state.sema` or `state.redb` file is renamed on open so its records remain
 readable. Multiple names in one state directory are an explicit conflict.
 Tables:

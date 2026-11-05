@@ -28,9 +28,9 @@ twilight events and reacts; humans query chronos via typed Datomic on argv
   rkyv frames over UDS). Canonical Datomic appears only on the CLI argv,
   the one disk record (`LocationSource` override), and the
   printed reply.
-- **Group-gated UDS.** `/run/chronos/<uid>.sock`, `chronos`
-  group at the directory level (mode 0770). Same shape as
-  chroma. CriomOS owns the group + tmpfiles entry.
+- **Place-owned UDS.** The startup `Place` datom carries Runtime and State.
+  Chronos listens at `<Place.Runtime>/chronos.sock`; the CLI's fixed `main`
+  default resolves through the standard XDG roots.
 - **One persisted value.** Only `LocationSource` (manual
   override vs geoclue) is stored across restarts. Ephemeris
   data is read from a vendored DE440 file, not a live cache.

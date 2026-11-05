@@ -6,9 +6,9 @@ use nexus::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Sig
 use redb::{Database, ReadableDatabase, TableDefinition};
 
 use crate::location::{Latitude, Location, LocationSource, Longitude};
+use crate::place::{Place, PlacingChronos, StartupPlace};
 use crate::request::Request;
 use crate::response::{ErrorMessage, Response};
-use crate::wire::socket_path;
 
 const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("location");
 const CURRENT_LOCATION: &str = "current";
@@ -267,12 +267,10 @@ impl Nexus for Chronos {
     }
 
     fn directory() -> PathBuf {
-        std::env::var_os("CHRONOS_STATE_DIRECTORY")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::temp_dir().join("chronos"))
+        Place::installed().expect("Chronos starts with a Place datom").state().to_owned()
     }
 
     fn socket_path() -> PathBuf {
-        socket_path()
+        Place::installed().expect("Chronos starts with a Place datom").ordinary_socket()
     }
 }

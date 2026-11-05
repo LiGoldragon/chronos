@@ -1,5 +1,46 @@
 #![allow(dead_code)]
 #![allow(clippy::redundant_closure)]
+pub type PlaceName = super::String;
+pub type Runtime = super::String;
+pub type State = super::String;
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Place(pub PlaceName, pub Runtime, pub State);
+impl datom_codec::Datomic for Place {
+    fn incorporate(
+        site: datom_codec::Site<'_>,
+    ) -> std::result::Result<Self, datom_codec::Fault> {
+        let mut p = datom_codec::Sited::positions(site, 3)?;
+        let p0: PlaceName = datom_codec::Positional::position(&mut p)?;
+        let p1: Runtime = datom_codec::Positional::position(&mut p)?;
+        let p2: State = datom_codec::Positional::position(&mut p)?;
+        std::result::Result::Ok(Self(p0, p1, p2))
+    }
+}
+impl protos::Conceivable<datom_codec::Datom> for Place {
+    type Fault = std::convert::Infallible;
+    fn conceive(
+        &self,
+    ) -> std::result::Result<protos::Situated<datom_codec::Datom>, Self::Fault> {
+        std::result::Result::Ok(
+            protos::Situated(
+                protos::Situation {
+                    extent: protos::Extent(0, 0),
+                    children: vec![],
+                },
+                datom_codec::Datom::Struct(
+                    vec![
+                        protos::Conceivable::conceive(& self.0)
+                        .expect("infallible datom ascent").1,
+                        protos::Conceivable::conceive(& self.1)
+                        .expect("infallible datom ascent").1,
+                        protos::Conceivable::conceive(& self.2)
+                        .expect("infallible datom ascent").1
+                    ],
+                ),
+            ),
+        )
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Request {
     GetTime,

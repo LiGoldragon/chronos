@@ -40,6 +40,15 @@ and receive each event as it fires. The producer pushes;
 the consumer waits. Per `~/primary/skills/push-not-pull.md`,
 no polling.
 
+The daemon starts in a typed Nexus place:
+
+```sh
+chronos-daemon '{ main /run/user/1001/nexus/main /home/li/.local/state/nexus/main }'
+```
+
+The place carries its runtime and Memory directories. The one-shot CLI uses the
+fixed `main` place under the standard XDG roots.
+
 Both surfaces use one typed current-Datom boundary. Chronos accepts a single
 `Request` value and renders a canonical `Response`; whitespace in output is
 canonical, while equivalent compact input remains part of the grammar. Its

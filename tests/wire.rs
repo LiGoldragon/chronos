@@ -1,20 +1,5 @@
 use chronos::wire::{MAX_FRAME_BYTES, write_frame, write_frame_blocking};
 
-#[cfg(unix)]
-#[test]
-fn socket_configuration_accepts_unix_paths_that_are_not_utf8() {
-    use std::os::unix::ffi::OsStringExt;
-
-    let configured = std::ffi::OsString::from_vec(b"/tmp/chronos-\xff.sock".to_vec());
-    // This test binary has no other test that reads CHRONOS_SOCKET.
-    unsafe { std::env::set_var("CHRONOS_SOCKET", &configured) };
-
-    let path = chronos::wire::socket_path();
-
-    unsafe { std::env::remove_var("CHRONOS_SOCKET") };
-    assert_eq!(path, std::path::PathBuf::from(configured));
-}
-
 #[test]
 fn blocking_writer_refuses_a_frame_its_reader_would_refuse() {
     let mut wire = Vec::new();

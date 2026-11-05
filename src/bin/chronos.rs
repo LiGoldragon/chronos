@@ -2,7 +2,7 @@
 //!
 //! Embodies a single Datomic value from argv, archives it as a
 //! [`chronos::Request`], sends it length-prefixed over the
-//! daemon's UDS at `/run/chronos/<uid>.sock`, reads a length-
+//! daemon's UDS at the fixed default Nexus place, reads a length-
 //! prefixed [`chronos::Response`], and prints canonical Datomic.
 
 fn main() -> chronos::Result<()> {

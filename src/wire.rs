@@ -67,31 +67,3 @@ where
     reader.read_exact(&mut buffer).await?;
     Ok(buffer)
 }
-
-/// The Unix-socket path the daemon listens on. Reads
-/// `$CHRONOS_SOCKET` if set; otherwise
-/// `/run/chronos/<uid>.sock` if the directory is reachable;
-/// otherwise `/tmp/chronos-<uid>.sock`.
-pub fn socket_path() -> std::path::PathBuf {
-    if let Some(explicit) = std::env::var_os("CHRONOS_SOCKET") {
-        return std::path::PathBuf::from(explicit);
-    }
-    let uid = unsafe { libc_uid() };
-    let group_path = std::path::PathBuf::from(format!("/run/chronos/{uid}.sock"));
-    if std::path::Path::new("/run/chronos").is_dir() {
-        return group_path;
-    }
-    std::path::PathBuf::from(format!("/tmp/chronos-{uid}.sock"))
-}
-
-/// The current process's real UID.
-///
-/// Wrapped because std doesn't expose it without a feature
-/// gate; the daemon and CLI both need it for the per-user
-/// socket path under `/run/chronos/<uid>.sock`.
-unsafe fn libc_uid() -> u32 {
-    unsafe extern "C" {
-        fn getuid() -> u32;
-    }
-    unsafe { getuid() }
-}

@@ -10,13 +10,14 @@
 use std::os::unix::net::UnixStream;
 
 use crate::error::Result;
+use crate::place::{DefaultPlace, Place, PlacingChronos};
 use crate::request::Request;
 use crate::response::Response;
-use crate::wire::{read_frame_blocking, socket_path, write_frame_blocking};
+use crate::wire::{read_frame_blocking, write_frame_blocking};
 
 /// Send `request` to the running daemon and return its response.
 pub fn send(request: &Request) -> Result<Response> {
-    let path = socket_path();
+    let path = Place::main_for_process().ordinary_socket();
     let mut stream = UnixStream::connect(&path)?;
     let archive = request.archive()?;
     write_frame_blocking(&mut stream, &archive)?;
