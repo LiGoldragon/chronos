@@ -14,6 +14,9 @@ pub const MAX_FRAME_BYTES: usize = 1024 * 1024;
 
 /// Write `bytes` as a length-prefixed frame on a synchronous writer.
 pub fn write_frame_blocking<W: Write>(writer: &mut W, bytes: &[u8]) -> Result<()> {
+    if bytes.len() > MAX_FRAME_BYTES {
+        return Err(Error::Daemon { message: format!("frame too large: {} bytes", bytes.len()) });
+    }
     let length = u32::try_from(bytes.len()).map_err(|_| Error::Daemon { message: "frame too large".into() })?;
     writer.write_all(&length.to_be_bytes())?;
     writer.write_all(bytes)?;
@@ -39,6 +42,9 @@ pub async fn write_frame<W>(writer: &mut W, bytes: &[u8]) -> Result<()>
 where
     W: AsyncWriteExt + Unpin,
 {
+    if bytes.len() > MAX_FRAME_BYTES {
+        return Err(Error::Daemon { message: format!("frame too large: {} bytes", bytes.len()) });
+    }
     let length = u32::try_from(bytes.len()).map_err(|_| Error::Daemon { message: "frame too large".into() })?;
     writer.write_all(&length.to_be_bytes()).await?;
     writer.write_all(bytes).await?;
