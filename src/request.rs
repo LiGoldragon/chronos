@@ -38,7 +38,15 @@ impl Request {
     }
 
     pub fn from_archive(bytes: &[u8]) -> Result<Self> {
-        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|error| Error::RkyvCodec(error.to_string()))
+        let request = rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes)
+            .map_err(|error| Error::RkyvCodec(error.to_string()))?;
+        match request {
+            Self::SetLocation { latitude, longitude } => Ok(Self::SetLocation {
+                latitude: Latitude::try_new(latitude.as_degrees())?,
+                longitude: Longitude::try_new(longitude.as_degrees())?,
+            }),
+            request => Ok(request),
+        }
     }
 }
 

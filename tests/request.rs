@@ -55,6 +55,20 @@ fn set_location_seattle() {
 }
 
 #[test]
+fn archived_location_is_revalidated_after_loading() {
+    let request = Request::SetLocation {
+        latitude: Latitude::try_new(47.6).unwrap(),
+        longitude: Longitude::try_new(-122.3).unwrap(),
+    };
+    let mut bytes = request.archive().expect("archive");
+    let encoded = 47.6_f64.to_le_bytes();
+    let offset = bytes.windows(encoded.len()).position(|window| window == encoded).expect("archived latitude bytes");
+    bytes[offset..offset + encoded.len()].copy_from_slice(&91.0_f64.to_le_bytes());
+
+    Request::from_archive(&bytes).expect_err("out-of-range archived latitude must fail");
+}
+
+#[test]
 fn use_geoclue() {
     let request = round_trip_datomic("UseGeoclue");
     assert_eq!(request, Request::UseGeoclue);
