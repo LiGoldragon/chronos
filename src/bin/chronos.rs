@@ -13,6 +13,10 @@ fn main() -> chronos::Result<()> {
         );
         std::process::exit(2);
     });
+    if args.next().is_some() {
+        eprintln!("chronos accepts one Request datom");
+        std::process::exit(2);
+    }
 
     let request = chronos::Request::from_text(&request_text)?;
     let response = chronos::client::send(&request)?;
