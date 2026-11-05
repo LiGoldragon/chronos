@@ -77,6 +77,17 @@ fn location() {
 }
 
 #[test]
+fn archived_location_is_revalidated_after_loading() {
+    let response = Response::Location { location: seattle(), source: LocationSource::Manual };
+    let mut bytes = response.archive().expect("archive");
+    let encoded = 47.6_f64.to_le_bytes();
+    let offset = bytes.windows(encoded.len()).position(|window| window == encoded).expect("archived latitude bytes");
+    bytes[offset..offset + encoded.len()].copy_from_slice(&91.0_f64.to_le_bytes());
+
+    Response::from_archive(&bytes).expect_err("out-of-range archived latitude must fail");
+}
+
+#[test]
 fn event() {
     let response = Response::Event {
         event: SolarEvent {

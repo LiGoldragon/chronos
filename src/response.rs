@@ -7,9 +7,38 @@ use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 use crate::{
     error::{Error as ChronosError, Result},
     event::SolarEvent,
-    location::{Location, LocationSource},
-    zodiac::ZodiacalTime,
+    location::{Latitude, Location, LocationSource, Longitude},
+    zodiac::{ZodiacDegree, ZodiacMinute, ZodiacalTime},
 };
+
+trait RevalidatingArchive: Sized {
+    fn revalidate(self) -> Result<Self>;
+}
+
+impl RevalidatingArchive for Location {
+    fn revalidate(self) -> Result<Self> {
+        Ok(Self {
+            latitude: Latitude::try_new(self.latitude.as_degrees())?,
+            longitude: Longitude::try_new(self.longitude.as_degrees())?,
+        })
+    }
+}
+
+impl RevalidatingArchive for SolarEvent {
+    fn revalidate(self) -> Result<Self> {
+        Ok(Self { location: self.location.revalidate()?, ..self })
+    }
+}
+
+impl RevalidatingArchive for ZodiacalTime {
+    fn revalidate(self) -> Result<Self> {
+        Ok(Self {
+            sign: self.sign,
+            degree: ZodiacDegree::try_new(self.degree.as_u8())?,
+            minute: ZodiacMinute::try_new(self.minute.as_u8())?,
+        })
+    }
+}
 
 /// A response message representable at every canonical Datomic outbound edge.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, PartialEq, Eq)]
@@ -25,6 +54,12 @@ impl ErrorMessage {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl RevalidatingArchive for ErrorMessage {
+    fn revalidate(self) -> Result<Self> {
+        Self::try_new(self.0)
     }
 }
 
@@ -68,7 +103,18 @@ impl Response {
     }
 
     pub fn from_archive(bytes: &[u8]) -> Result<Self> {
-        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|error| ChronosError::RkyvCodec(error.to_string()))
+        let response = rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes)
+            .map_err(|error| ChronosError::RkyvCodec(error.to_string()))?;
+        match response {
+            Self::Acked => Ok(Self::Acked),
+            Self::Time { zodiacal_time } => Ok(Self::Time { zodiacal_time: zodiacal_time.revalidate()? }),
+            Self::Schedule { events } => Ok(Self::Schedule {
+                events: events.into_iter().map(RevalidatingArchive::revalidate).collect::<Result<_>>()?,
+            }),
+            Self::Location { location, source } => Ok(Self::Location { location: location.revalidate()?, source }),
+            Self::Event { event } => Ok(Self::Event { event: event.revalidate()? }),
+            Self::Error { message } => Ok(Self::Error { message: message.revalidate()? }),
+        }
     }
 }
 
