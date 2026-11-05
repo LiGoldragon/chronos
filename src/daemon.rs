@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use nexus::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Signaling};
 use redb::{Database, ReadableDatabase, TableDefinition};
 
-use crate::location::{Location, LocationSource};
+use crate::location::{Latitude, Location, LocationSource, Longitude};
 use crate::request::Request;
 use crate::response::{ErrorMessage, Response};
 use crate::wire::socket_path;
@@ -207,9 +207,15 @@ impl Remembering for ChronosMemory {
             Ok(None) => return RememberedLocation::Unset,
             Err(_) => return RememberedLocation::Failed,
         };
-        rkyv::from_bytes::<Location, rkyv::rancor::Error>(bytes.value())
-            .map(RememberedLocation::Stored)
-            .unwrap_or(RememberedLocation::Failed)
+        let Ok(location) = rkyv::from_bytes::<Location, rkyv::rancor::Error>(bytes.value()) else {
+            return RememberedLocation::Failed;
+        };
+        let (Ok(latitude), Ok(longitude)) =
+            (Latitude::try_new(location.latitude.as_degrees()), Longitude::try_new(location.longitude.as_degrees()))
+        else {
+            return RememberedLocation::Failed;
+        };
+        RememberedLocation::Stored(Location { latitude, longitude })
     }
 }
 

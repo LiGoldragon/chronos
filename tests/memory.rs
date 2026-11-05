@@ -79,6 +79,33 @@ fn absent_location_is_distinct_from_a_failed_read() {
 }
 
 #[test]
+fn archived_location_is_revalidated_after_loading() {
+    let directory = tempfile::tempdir().expect("temporary directory");
+    let paths = directory.path().memory_paths();
+    let mut archive = rkyv::to_bytes::<rkyv::rancor::Error>(&location()).expect("archive valid location");
+    let valid_latitude = location().latitude.as_degrees().to_le_bytes();
+    let invalid_latitude = 91.0_f64.to_le_bytes();
+    let latitude_offset = archive
+        .windows(valid_latitude.len())
+        .position(|window| window == valid_latitude)
+        .expect("find archived latitude");
+    archive[latitude_offset..latitude_offset + invalid_latitude.len()].copy_from_slice(&invalid_latitude);
+
+    let database = Database::create(&paths.current).expect("create semantic corruption fixture");
+    let transaction = database.begin_write().expect("begin semantic corruption fixture write");
+    transaction
+        .open_table(LOCATIONS)
+        .expect("open location table")
+        .insert("current", archive.as_slice())
+        .expect("insert semantically invalid archive");
+    transaction.commit().expect("commit semantically invalid archive");
+    drop(database);
+
+    let memory = ChronosMemory::open_memory(directory.path()).expect("open semantic corruption fixture");
+    assert_eq!(memory.read(CurrentLocation), RememberedLocation::Failed);
+}
+
+#[test]
 fn sole_sema_memory_migrates_with_its_records() {
     assert_legacy_migrates(|paths| &paths.legacy_sema);
 }
