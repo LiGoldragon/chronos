@@ -239,10 +239,11 @@ dependencies = [
  "datom-codec",
  "ethos-zero",
  "hifitime",
- "nexus",
+ "kameo",
  "protos",
  "redb",
  "rkyv",
+ "rustix",
  "solar-positioning",
  "tempfile",
  "thiserror 2.0.21",
@@ -1260,17 +1261,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "nexus"
-version = "0.5.0"
-source = "git+https://github.com/LiGoldragon/nexus.git?rev=ec097e315a3b0b99bc215a72f6c3f6d8b2b060cf#ec097e315a3b0b99bc215a72f6c3f6d8b2b060cf"
-dependencies = [
- "kameo",
- "rkyv",
- "thiserror 2.0.21",
- "tokio",
 ]
 
 [[package]]

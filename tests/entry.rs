@@ -1,8 +1,7 @@
 use std::path::Path;
 
 use chronos::daemon::Chronos;
-use chronos::{Latitude, Location, Request, Response};
-use nexus::Entering;
+use chronos::{Entering, FrameLimit, Latitude, Location, Request, Response};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 
@@ -11,7 +10,7 @@ async fn set_location_then_get_location_uses_the_unix_socket() {
     let directory = tempfile::tempdir().unwrap();
     let socket = directory.path().join("chronos.sock");
     let listener = UnixListener::bind(&socket).unwrap();
-    let (_main, door) = Chronos::open(directory.path().to_path_buf()).unwrap();
+    let (_main, door) = Chronos::open(directory.path().to_path_buf(), FrameLimit::new(1_048_576)).unwrap();
 
     let server = async {
         for _ in 0..2 {

@@ -1,7 +1,8 @@
 //! `chronos-daemon` — Chronos started in one typed Nexus place.
 
-use chronos::{EmbodyingPlace, Place, PlacingChronos, StartupPlace};
-use nexus::Entering;
+use chronos::{EmbodyingPlace, Entering, FrameLimit, Place, PlacingChronos, StartupPlace};
+
+const DEFAULT_INBOUND_FRAME_LIMIT: FrameLimit = FrameLimit::new(1_048_576);
 
 fn main() -> std::process::ExitCode {
     let mut arguments = std::env::args();
@@ -26,5 +27,5 @@ fn main() -> std::process::ExitCode {
         eprintln!("Chronos already has a startup place");
         return std::process::ExitCode::FAILURE;
     }
-    chronos::daemon::Chronos::enter()
+    chronos::daemon::Chronos::enter(DEFAULT_INBOUND_FRAME_LIMIT)
 }

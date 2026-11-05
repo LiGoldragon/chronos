@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use nexus::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Signaling};
+use crate::{Admission, Changed, MemoryHandle, Nexus, Operating, Remembering, Signaling};
 use redb::{Database, ReadableDatabase, TableDefinition};
 
 use crate::location::{Latitude, Location, LocationSource, Longitude};
@@ -18,21 +18,21 @@ const CURRENT_LOCATION: &str = "current";
 /// Signal code cannot construct the admission that opens memory:
 ///
 /// ```compile_fail,E0451
-/// let _ = nexus::Admission { directory: "/tmp".into() };
+/// let _ = chronos::Admission { directory: "/tmp".into() };
 /// ```
 ///
 /// It cannot construct a memory handle:
 ///
 /// ```compile_fail,E0451
-/// fn reach<M: nexus::Remembering>() -> nexus::MemoryHandle<M> {
-///     nexus::MemoryHandle { actor: todo!() }
+/// fn reach<M: chronos::Remembering>() -> chronos::MemoryHandle<M> {
+///     chronos::MemoryHandle { actor: todo!() }
 /// }
 /// ```
 ///
 /// Nor can it follow its operation handle to the operation actor:
 ///
 /// ```compile_fail,E0616
-/// fn reach<N: nexus::Nexus>(operation: &nexus::OperationHandle<N>) {
+/// fn reach<N: chronos::Nexus>(operation: &chronos::OperationHandle<N>) {
 ///     let _ = &operation.actor;
 /// }
 /// ```

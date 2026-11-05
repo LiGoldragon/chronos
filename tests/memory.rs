@@ -4,8 +4,8 @@ use chronos::daemon::{
     Change, ChronosMemory, CurrentLocation, LocatingMemory, MemoryOpenError, MemoryPathConflict, OpeningMemory,
     RememberedLocation,
 };
+use chronos::{Changed, Remembering};
 use chronos::{Latitude, Location, Longitude};
-use nexus::{Changed, Remembering};
 use redb::{Database, TableDefinition};
 
 const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("location");

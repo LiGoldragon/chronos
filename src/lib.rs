@@ -15,6 +15,7 @@
 pub mod calendar;
 pub mod client;
 pub mod daemon;
+mod entry;
 pub mod error;
 pub mod event;
 pub mod location;
@@ -26,6 +27,11 @@ pub mod wire;
 pub mod zodiac;
 
 pub use calendar::{AmYear, OrdinalSolarTime};
+pub use entry::{
+    Admission, Cancellation, Changed, Door, Entering, FrameError, FrameLength, FrameLimit, LifecycleFailure,
+    LifecycleState, MainActor, MemoryActor, MemoryHandle, Nexus, NoTask, Operating, OperationActor, OperationHandle,
+    Remembering, RunningTask, SignalActor, Signaling, SupervisedTask,
+};
 pub use error::{Error, Result};
 pub use event::{EpochTaiNanos, SolarEvent, SolarEventKind};
 pub use location::{Latitude, Location, LocationSource, Longitude};
