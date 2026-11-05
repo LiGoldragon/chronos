@@ -2,9 +2,13 @@ use std::path::{Path, PathBuf};
 
 use chronos::daemon::{
     Change, ChronosMemory, CurrentLocation, LocatingMemory, MemoryOpenError, MemoryPathConflict, OpeningMemory,
+    RememberedLocation,
 };
 use chronos::{Latitude, Location, Longitude};
 use nexus::{Changed, Remembering};
+use redb::{Database, TableDefinition};
+
+const LOCATIONS: TableDefinition<&str, &[u8]> = TableDefinition::new("location");
 
 fn location() -> Location {
     Location {
@@ -28,7 +32,7 @@ fn assert_legacy_migrates(legacy_path: impl Fn(&chronos::daemon::MemoryPaths) ->
 
     assert!(paths.current.exists());
     assert!(!legacy_path(&paths).exists());
-    assert_eq!(memory.read(CurrentLocation), Some(location()));
+    assert_eq!(memory.read(CurrentLocation), RememberedLocation::Stored(location()));
 }
 
 #[test]
@@ -50,7 +54,28 @@ fn current_memory_opens_without_renaming() {
 
     let memory = ChronosMemory::open_memory(directory.path()).expect("reopen current memory");
 
-    assert_eq!(memory.read(CurrentLocation), Some(location()));
+    assert_eq!(memory.read(CurrentLocation), RememberedLocation::Stored(location()));
+}
+
+#[test]
+fn absent_location_is_distinct_from_a_failed_read() {
+    let fresh_directory = tempfile::tempdir().expect("fresh temporary directory");
+    let fresh = ChronosMemory::open_memory(fresh_directory.path()).expect("open fresh memory");
+    assert_eq!(fresh.read(CurrentLocation), RememberedLocation::Unset);
+
+    let corrupt_directory = tempfile::tempdir().expect("corrupt temporary directory");
+    let paths = corrupt_directory.path().memory_paths();
+    let database = Database::create(&paths.current).expect("create corrupt fixture database");
+    let transaction = database.begin_write().expect("begin corrupt fixture write");
+    transaction
+        .open_table(LOCATIONS)
+        .expect("open location table")
+        .insert("current", &[0xff, 0x00][..])
+        .expect("insert invalid archive");
+    transaction.commit().expect("commit invalid archive");
+    drop(database);
+    let corrupt = ChronosMemory::open_memory(corrupt_directory.path()).expect("open corrupt memory");
+    assert_eq!(corrupt.read(CurrentLocation), RememberedLocation::Failed);
 }
 
 #[test]

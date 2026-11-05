@@ -163,10 +163,18 @@ pub enum Change {
 
 pub struct CurrentLocation;
 
+/// The result of reading the durable current-location slot.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RememberedLocation {
+    Unset,
+    Stored(Location),
+    Failed,
+}
+
 impl Remembering for ChronosMemory {
     type Change = Change;
     type Reading = CurrentLocation;
-    type Remembered = Option<Location>;
+    type Remembered = RememberedLocation;
 
     fn open(admission: Admission) -> Option<Self> {
         std::fs::create_dir_all(admission.directory()).ok()?;
@@ -186,10 +194,22 @@ impl Remembering for ChronosMemory {
     }
 
     fn read(&self, _: Self::Reading) -> Self::Remembered {
-        let transaction = self.database.begin_read().ok()?;
-        let table = transaction.open_table(LOCATIONS).ok()?;
-        let bytes = table.get(CURRENT_LOCATION).ok()??;
-        rkyv::from_bytes::<Location, rkyv::rancor::Error>(bytes.value()).ok()
+        let Ok(transaction) = self.database.begin_read() else {
+            return RememberedLocation::Failed;
+        };
+        let table = match transaction.open_table(LOCATIONS) {
+            Ok(table) => table,
+            Err(redb::TableError::TableDoesNotExist(_)) => return RememberedLocation::Unset,
+            Err(_) => return RememberedLocation::Failed,
+        };
+        let bytes = match table.get(CURRENT_LOCATION) {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => return RememberedLocation::Unset,
+            Err(_) => return RememberedLocation::Failed,
+        };
+        rkyv::from_bytes::<Location, rkyv::rancor::Error>(bytes.value())
+            .map(RememberedLocation::Stored)
+            .unwrap_or(RememberedLocation::Failed)
     }
 }
 
@@ -219,9 +239,9 @@ impl Operating<ChronosMemory> for ChronosOperation {
                 Changed::Failed => Outcome::Error("location store refused the change".into()),
             },
             Operation::GetLocation => match memory.read(CurrentLocation).await {
-                Some(Some(location)) => Outcome::Location(location),
-                Some(None) => Outcome::Error("location is not set".into()),
-                None => Outcome::Error("location store refused the read".into()),
+                Some(RememberedLocation::Stored(location)) => Outcome::Location(location),
+                Some(RememberedLocation::Unset) => Outcome::Error("location is not set".into()),
+                Some(RememberedLocation::Failed) | None => Outcome::Error("location store refused the read".into()),
             },
             Operation::Unsupported => Outcome::Error("request is outside the entry experiment".into()),
         }
