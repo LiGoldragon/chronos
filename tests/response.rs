@@ -48,12 +48,12 @@ fn schedule_with_two_events() {
         events: vec![
             SolarEvent {
                 kind: SolarEventKind::Sunrise,
-                when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)),
+                when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)).unwrap(),
                 location: seattle(),
             },
             SolarEvent {
                 kind: SolarEventKind::Sunset,
-                when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_050_000.0)),
+                when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_050_000.0)).unwrap(),
                 location: seattle(),
             },
         ],
@@ -81,7 +81,7 @@ fn event() {
     let response = Response::Event {
         event: SolarEvent {
             kind: SolarEventKind::CivilDawn,
-            when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)),
+            when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)).unwrap(),
             location: seattle(),
         },
     };

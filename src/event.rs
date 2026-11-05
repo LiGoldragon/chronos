@@ -17,6 +17,7 @@ use protos::{Conceivable, Extent, Situated, Situation};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::location::Location;
+use crate::{Error, Result};
 
 /// One of the named solar events chronos publishes.
 ///
@@ -88,8 +89,13 @@ pub struct EpochTaiNanos(i64);
 
 impl EpochTaiNanos {
     /// Construct from a [`hifitime::Epoch`].
-    pub fn from_epoch(epoch: Epoch) -> Self {
-        Self(epoch.to_tai_duration().total_nanoseconds() as i64)
+    pub fn from_epoch(epoch: Epoch) -> Result<Self> {
+        let nanoseconds = epoch.to_tai_duration().total_nanoseconds();
+        i64::try_from(nanoseconds).map(Self).map_err(|_| Error::OutOfRange {
+            type_name: "EpochTaiNanos",
+            valid_range: "[-9223372036854775808, 9223372036854775807]",
+            got: nanoseconds.to_string(),
+        })
     }
 
     /// Reconstruct a [`hifitime::Epoch`].

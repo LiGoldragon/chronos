@@ -11,7 +11,7 @@ fn seattle() -> Location {
 fn sample_event(kind: SolarEventKind) -> SolarEvent {
     SolarEvent {
         kind,
-        when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)),
+        when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)).unwrap(),
         location: seattle(),
     }
 }
@@ -69,7 +69,18 @@ fn solar_event_datomic_round_trip() {
 #[test]
 fn epoch_tai_nanos_round_trips_through_hifitime() {
     let original_epoch = hifitime::Epoch::from_tai_seconds(1_234_567_890.5);
-    let nanos = EpochTaiNanos::from_epoch(original_epoch);
+    let nanos = EpochTaiNanos::from_epoch(original_epoch).unwrap();
     let restored_epoch = nanos.to_epoch();
     assert_eq!(restored_epoch, original_epoch);
+}
+
+#[test]
+fn epoch_tai_nanos_rejects_epochs_outside_its_wire_range() {
+    let after_range =
+        hifitime::Epoch::from_tai_duration(hifitime::Duration::from_total_nanoseconds(i128::from(i64::MAX) + 1));
+    let before_range =
+        hifitime::Epoch::from_tai_duration(hifitime::Duration::from_total_nanoseconds(i128::from(i64::MIN) - 1));
+
+    assert!(EpochTaiNanos::from_epoch(after_range).is_err());
+    assert!(EpochTaiNanos::from_epoch(before_range).is_err());
 }
