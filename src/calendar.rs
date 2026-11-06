@@ -17,8 +17,6 @@
 
 use core::fmt;
 
-use datom_codec::{Datom, Datomic};
-use protos::{Conceivable, Opaque, Situated};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -47,25 +45,6 @@ impl AmYear {
 impl fmt::Display for AmYear {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}", self.0)
-    }
-}
-
-impl Datomic for AmYear {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let extent = site.at.extent;
-        let value: i64 = protos::Integer::incorporate(site)?;
-        i32::try_from(value).map(Self).map_err(|_| {
-            datom_codec::Fault::Corporate(
-                datom_codec::Locus { path: vec![], extent },
-                datom_codec::Problem::Value(Opaque::from(value.to_string())),
-            )
-        })
-    }
-}
-impl Conceivable<Datom> for AmYear {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        protos::Integer::from(i64::from(self.0)).conceive()
     }
 }
 
@@ -121,21 +100,19 @@ impl fmt::Display for OrdinalSolarTime {
     }
 }
 
-impl Datomic for OrdinalSolarTime {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let extent = site.at.extent;
-        let value = f64::from(protos::Decimal::incorporate(site)?);
-        Self::try_new(value).map_err(|_| {
-            datom_codec::Fault::Corporate(
-                datom_codec::Locus { path: vec![], extent },
-                datom_codec::Problem::Value(Opaque::from(value.to_string())),
-            )
-        })
+crate::scalar::decimal_scalar!(OrdinalSolarTime);
+
+impl datom_codec::Composing for AmYear {
+    fn compose(
+        datom: &datom_codec::Datom,
+        budget: &mut datom_codec::Budget,
+    ) -> core::result::Result<Self, datom_codec::Error> {
+        let value = <i64 as datom_codec::Composing>::compose(datom, budget)?;
+        i32::try_from(value).map(Self::new).map_err(|_| crate::scalar::refusal(datom, "AmYear", value.to_string()))
     }
 }
-impl Conceivable<Datom> for OrdinalSolarTime {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        protos::Decimal::try_from(self.0).expect("finite ordinal time").conceive()
+impl datom_codec::Datomizable for AmYear {
+    fn datomize(&self, at: datom_codec::Path) -> datom_codec::Datom {
+        datom_codec::Datomizable::datomize(&i64::from(self.0), at)
     }
 }

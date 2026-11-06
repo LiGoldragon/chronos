@@ -3,11 +3,11 @@
 //! Datomic value failure before constructing the
 //! domain type.
 
+mod support;
 use chronos::{Latitude, Location, Longitude};
-use datom_codec::{Actualizable, IncorporationBudget, Potential, Problem};
 
-fn incorporate<T: datom_codec::Datomic>(source: &str) -> Result<T, datom_codec::Fault> {
-    Potential::<T>::from(source).actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
+fn incorporate<T: datom_codec::Composing>(source: &str) -> Result<T, datom_codec::Error> {
+    support::read::<T>(source)
 }
 
 #[test]
@@ -19,13 +19,13 @@ fn valid_latitude_decodes_through_try_new() {
 #[test]
 fn out_of_range_latitude_rejected_at_wire() {
     let error = incorporate::<Latitude>("200.0").unwrap_err();
-    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
+    assert!(matches!(error.kind, datom_codec::ErrorKind::Value { .. }));
 }
 
 #[test]
 fn out_of_range_longitude_rejected_at_wire() {
     let error = incorporate::<Longitude>("-400.0").unwrap_err();
-    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
+    assert!(matches!(error.kind, datom_codec::ErrorKind::Value { .. }));
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn location_decode_propagates_field_validation() {
     // per-field embodiment, so the latitude field's constructor
     // validation surfaces before any Location is constructed.
     let error = incorporate::<Location>("{200.0 0.0}").unwrap_err();
-    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
+    assert!(matches!(error.kind, datom_codec::ErrorKind::Value { .. }));
 }
 
 #[test]

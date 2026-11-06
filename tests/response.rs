@@ -7,7 +7,8 @@
 
 use chronos::{
     EclipticLongitude, EpochTaiNanos, ErrorMessage, Latitude, Location, LocationSource, Longitude, Response,
-    SolarEvent, SolarEventKind, ZodiacalTime,
+    ResponseError, ResponseEvent, ResponseLocation, ResponseSchedule, ResponseTime, SolarEvent, SolarEventKind,
+    ZodiacalTime,
 };
 
 fn round_trip_datomic(response: &Response) -> Response {
@@ -36,15 +37,16 @@ fn acked() {
 
 #[test]
 fn time() {
-    let response =
-        Response::Time { zodiacal_time: ZodiacalTime::from_longitude(EclipticLongitude::try_new(45.0).unwrap()) };
+    let response = Response::Time(ResponseTime {
+        zodiacal_time: ZodiacalTime::from_longitude(EclipticLongitude::try_new(45.0).unwrap()),
+    });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn schedule_with_two_events() {
-    let response = Response::Schedule {
+    let response = Response::Schedule(ResponseSchedule {
         events: vec![
             SolarEvent {
                 kind: SolarEventKind::Sunrise,
@@ -57,49 +59,49 @@ fn schedule_with_two_events() {
                 location: seattle(),
             },
         ],
-    };
+    });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn schedule_empty() {
-    let response = Response::Schedule { events: vec![] };
+    let response = Response::Schedule(ResponseSchedule { events: vec![] });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn location() {
-    let response = Response::Location { location: seattle(), source: LocationSource::Manual };
+    let response = Response::Location(ResponseLocation { location: seattle(), source: LocationSource::Manual });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn event() {
-    let response = Response::Event {
+    let response = Response::Event(ResponseEvent {
         event: SolarEvent {
             kind: SolarEventKind::CivilDawn,
             when: EpochTaiNanos::from_epoch(hifitime::Epoch::from_tai_seconds(1_000_000_000.0)),
             location: seattle(),
         },
-    };
+    });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn error_message() {
-    let response = Response::Error { message: ErrorMessage::try_new("ephemeris file not found".into()).unwrap() };
+    let response = Response::Error(ResponseError { message: ErrorMessage::new("ephemeris file not found".into()) });
     round_trip_datomic(&response);
     round_trip_rkyv(&response);
 }
 
 #[test]
 fn error_messages_with_apostrophes_do_not_require_quote_delimiters() {
-    let response = Response::Error { message: ErrorMessage::try_new("sky's ephemeris is missing".into()).unwrap() };
+    let response = Response::Error(ResponseError { message: ErrorMessage::new("sky's ephemeris is missing".into()) });
     let text = response.to_text();
-    assert_eq!(text, "Error.{ “sky's ephemeris is missing” }");
+    assert_eq!(text, "Error.{ «sky's ephemeris is missing» }");
     assert_eq!(Response::from_text(&text).expect("Datomic embody"), response);
 }

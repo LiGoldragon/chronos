@@ -7,7 +7,7 @@ use thiserror::Error as ThisError;
 pub enum Error {
     /// A Datomic value does not embody as the expected Chronos type.
     #[error("Datomic {type_name} value is invalid: {problem}")]
-    Datomic { type_name: &'static str, problem: &'static str },
+    Datomic { type_name: &'static str, problem: String },
     /// Failed to encode or decode an rkyv archive on the wire.
     #[error("rkyv codec failed: {0}")]
     RkyvCodec(String),
@@ -29,13 +29,9 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn from_fault(type_name: &'static str, fault: datom_codec::Fault) -> Self {
-        let problem = match fault {
-            datom_codec::Fault::Structural(_) => "structural",
-            datom_codec::Fault::Conceptual(_, _) => "conceptual",
-            datom_codec::Fault::Corporate(_, _) => "corporate",
-        };
-        Self::Datomic { type_name, problem }
+    /// A datom text refused while composing `type_name`, with the codec's own positioned error.
+    pub fn from_datom(type_name: &'static str, error: datom_codec::Error) -> Self {
+        Self::Datomic { type_name, problem: format!("{error:?}") }
     }
 }
 

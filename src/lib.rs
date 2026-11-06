@@ -20,7 +20,9 @@ pub mod event;
 pub mod location;
 pub mod request;
 pub mod response;
+mod scalar;
 pub mod sky;
+mod text;
 pub mod wire;
 pub mod zodiac;
 
@@ -28,7 +30,9 @@ pub use calendar::{AmYear, OrdinalSolarTime};
 pub use error::{Error, Result};
 pub use event::{EpochTaiNanos, SolarEvent, SolarEventKind};
 pub use location::{Latitude, Location, LocationSource, Longitude};
-pub use request::Request;
-pub use response::{ErrorMessage, Response};
+pub use request::{Request, RequestSetLocation, RequestSubscribe};
+pub use response::{
+    ErrorMessage, Response, ResponseError, ResponseEvent, ResponseLocation, ResponseSchedule, ResponseTime,
+};
 pub use sky::{Observer, Sky, SkyState};
 pub use zodiac::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};
