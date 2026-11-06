@@ -70,6 +70,8 @@ fn request_archives_to_the_same_bytes_as_zero_three() {
         bytes(&RequestZeroThree::Subscribe { kinds })
     );
     assert_eq!(bytes(&Request::GetTime), bytes(&RequestZeroThree::GetTime));
+    assert_eq!(bytes(&Request::GetSchedule), bytes(&RequestZeroThree::GetSchedule));
+    assert_eq!(bytes(&Request::GetLocation), bytes(&RequestZeroThree::GetLocation));
     assert_eq!(bytes(&Request::UseGeoclue), bytes(&RequestZeroThree::UseGeoclue));
 }
 
