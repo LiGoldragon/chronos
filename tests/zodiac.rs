@@ -1,8 +1,8 @@
 //! Round-trip + projection + validation tests for the zodiac
 //! module.
 
+mod support;
 use chronos::{EclipticLongitude, ZodiacDegree, ZodiacMinute, ZodiacSign, ZodiacalTime};
-use datom_codec::{Actualizable, IncorporationBudget, Potential, Problem, Textualizable};
 
 // ─── ZodiacSign ────────────────────────────────────────────
 
@@ -62,10 +62,8 @@ fn zodiac_sign_datomic_round_trips_for_every_variant() {
         ZodiacSign::Aquarius,
         ZodiacSign::Pisces,
     ] {
-        let text = sign.textualize();
-        let decoded = Potential::<ZodiacSign>::from(text.as_str())
-            .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
-            .expect("incorporate");
+        let text = support::print(&sign);
+        let decoded = support::read::<ZodiacSign>(text.as_str()).expect("incorporate");
         assert_eq!(decoded, sign, "round-trip changed {sign:?} via text {text:?}");
     }
 }
@@ -100,10 +98,8 @@ fn ecliptic_longitude_from_unnormalized_wraps() {
 
 #[test]
 fn ecliptic_longitude_wire_validation() {
-    let error = Potential::<EclipticLongitude>::from("400.0")
-        .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
-        .unwrap_err();
-    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
+    let error = support::read::<EclipticLongitude>("400.0").unwrap_err();
+    assert!(matches!(error.kind, datom_codec::ErrorKind::Value { .. }));
 }
 
 // ─── ZodiacDegree / ZodiacMinute ───────────────────────────
@@ -121,10 +117,8 @@ fn zodiac_degree_30_rejected() {
 
 #[test]
 fn zodiac_degree_wire_validation() {
-    let error = Potential::<ZodiacDegree>::from("30")
-        .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
-        .unwrap_err();
-    assert!(matches!(error, datom_codec::Fault::Corporate(_, Problem::Value(_))));
+    let error = support::read::<ZodiacDegree>("30").unwrap_err();
+    assert!(matches!(error.kind, datom_codec::ErrorKind::Value { .. }));
 }
 
 #[test]
@@ -158,9 +152,7 @@ fn zodiacal_time_display_uses_unicode_symbol() {
 #[test]
 fn zodiacal_time_datomic_round_trip() {
     let original = ZodiacalTime::from_longitude(EclipticLongitude::try_new(135.5).unwrap());
-    let text = original.textualize();
-    let decoded = Potential::<ZodiacalTime>::from(text.as_str())
-        .actualize(IncorporationBudget::try_from(1024).expect("positive budget"))
-        .expect("incorporate");
+    let text = support::print(&original);
+    let decoded = support::read::<ZodiacalTime>(text.as_str()).expect("incorporate");
     assert_eq!(decoded, original);
 }

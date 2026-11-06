@@ -21,7 +21,7 @@ use tokio::net::{UnixListener, UnixStream};
 
 use crate::error::Result;
 use crate::request::Request;
-use crate::response::{ErrorMessage, Response};
+use crate::response::{ErrorMessage, Response, ResponseError};
 use crate::wire::{read_frame, socket_path, write_frame};
 
 /// Run the daemon until SIGTERM / Ctrl-C.
@@ -71,13 +71,14 @@ async fn serve_connection(mut stream: UnixStream) -> Result<()> {
     let frame = read_frame(&mut stream).await?;
     let request = Request::from_archive(&frame)?;
     match request {
-        Request::Subscribe { .. } => {
+        Request::Subscribe(_) => {
             // TODO(chronos-impl): register with SubscriptionHub
             // and stream Event frames until disconnect, per
             // ~/primary/skills/push-not-pull.md §"Subscription
             // contract" — emit current schedule first, then
             // deltas at deadline fires.
-            let response = Response::Error { message: ErrorMessage::try_new("Subscribe not yet implemented".into())? };
+            let response =
+                Response::Error(ResponseError { message: ErrorMessage::new("Subscribe not yet implemented".into()) });
             let archive = response.archive()?;
             write_frame(&mut stream, &archive).await?;
         }
@@ -96,8 +97,5 @@ fn dispatch_one_shot(request: Request) -> Response {
     // StateStore for GetLocation / SetLocation / UseGeoclue.
     // The skeleton answers every verb with `Error` so the
     // wire shape is exercised before the astronomy lands.
-    Response::Error {
-        message: ErrorMessage::try_new(format!("not yet implemented: {}", request.to_text()))
-            .expect("a canonical Request produces representable diagnostic text"),
-    }
+    Response::Error(ResponseError { message: ErrorMessage::new(format!("not yet implemented: {}", request.to_text())) })
 }

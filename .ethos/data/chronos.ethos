@@ -1,14 +1,13 @@
-Types
-[ super:[ Latitude Longitude SolarEventKind SolarEvent EpochTaiNanos ZodiacalTime Location LocationSource ErrorMessage ] ]
-[
- Request.[ GetTime GetSchedule GetLocation SetLocation.RequestSetLocation UseGeoclue Subscribe.RequestSubscribe ]
- RequestSetLocation.{ Latitude Longitude }
- RequestSubscribe.{ Vector<SolarEventKind> }
- Response.[ Acked Time.ResponseTime Schedule.ResponseSchedule Location.ResponseLocation Event.ResponseEvent Error.ResponseError ]
- ResponseTime.{ ZodiacalTime }
- ResponseSchedule.{ Vector<SolarEvent> }
- ResponseLocation.{ Location LocationSource }
- ResponseEvent.{ SolarEvent }
- ResponseError.{ ErrorMessage }
-]
+Library
+[ super:[ Latitude Longitude SolarEventKind SolarEvent ZodiacalTime Location LocationSource ErrorMessage ] ]
+[ Request.[ GetTime GetSchedule GetLocation SetLocation.RequestSetLocation UseGeoclue Subscribe.RequestSubscribe ]
+  RequestSetLocation.{ Latitude Longitude }
+  RequestSubscribe.{ Vector<SolarEventKind> }
+  Response.[ Acked Time.ResponseTime Schedule.ResponseSchedule Location.ResponseLocation Event.ResponseEvent Error.ResponseError ]
+  ResponseTime.{ ZodiacalTime }
+  ResponseSchedule.{ Vector<SolarEvent> }
+  ResponseLocation.{ Location LocationSource }
+  ResponseEvent.{ SolarEvent }
+  ResponseError.{ ErrorMessage } ]
+[]
 []

@@ -1,6 +1,6 @@
 [package]
 name         = "chronos"
-version      = "0.3.0"
+version      = "0.4.0"
 edition      = "2024"
 rust-version = "1.89"
 license-file = "LICENSE.md"
@@ -19,8 +19,8 @@ name = "chronos-daemon"
 path = "src/bin/chronos_daemon.rs"
 
 [dependencies]
-datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "41a3c073d5c5" }
-protos = { git = "https://github.com/LiGoldragon/protos", rev = "2d999f173334" }
+datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "eabead4" }
+protos = { git = "https://github.com/LiGoldragon/protos", rev = "3c7ade3" }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror  = "2"
 tokio      = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "signal", "sync", "time"] }
@@ -35,4 +35,4 @@ solar-positioning = "0.5"
 redb = "4"
 
 [dev-dependencies]
-ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "bcf728bbe4521e663f4773d3c1fd4ebb643df32e" }
+ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "5a5daca315ab24460ccbcd5038130c453e853e6e" }

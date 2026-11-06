@@ -233,7 +233,7 @@ dependencies = [
 
 [[package]]
 name = "chronos"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anise",
  "datom-codec",
@@ -351,10 +351,22 @@ dependencies = [
 
 [[package]]
 name = "datom-codec"
-version = "0.21.0"
-source = "git+https://github.com/LiGoldragon/datom-codec?rev=41a3c073d5c5#41a3c073d5c5cdcb3ebb1a5c842e8c068145fdb2"
+version = "0.33.0"
+source = "git+https://github.com/LiGoldragon/datom-codec?rev=eabead4#eabead48b31e8d4f429d7fb156dd18548bbd79c1"
 dependencies = [
+ "datom-codec-derive",
  "protos",
+ "rkyv",
+]
+
+[[package]]
+name = "datom-codec-derive"
+version = "0.32.3"
+source = "git+https://github.com/LiGoldragon/datom-codec?rev=eabead4#eabead48b31e8d4f429d7fb156dd18548bbd79c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -522,14 +534,15 @@ dependencies = [
 
 [[package]]
 name = "ethos-zero"
-version = "5.0.0"
-source = "git+https://github.com/LiGoldragon/ethos-zero?rev=bcf728bbe4521e663f4773d3c1fd4ebb643df32e#bcf728bbe4521e663f4773d3c1fd4ebb643df32e"
+version = "19.2.0"
+source = "git+https://github.com/LiGoldragon/ethos-zero?rev=5a5daca315ab24460ccbcd5038130c453e853e6e#5a5daca315ab24460ccbcd5038130c453e853e6e"
 dependencies = [
  "datom-codec",
  "prettyplease",
  "proc-macro2",
  "protos",
  "quote",
+ "rkyv",
  "syn 3.0.5",
 ]
 
@@ -1414,8 +1427,11 @@ dependencies = [
 
 [[package]]
 name = "protos"
-version = "0.26.0"
-source = "git+https://github.com/LiGoldragon/protos?rev=2d999f173334#2d999f1733347b7e64e24b2f75ba889ad7182bc0"
+version = "0.33.0"
+source = "git+https://github.com/LiGoldragon/protos?rev=3c7ade3#3c7ade34010cec6cec153ae694ee335f7fea0193"
+dependencies = [
+ "rkyv",
+]
 
 [[package]]
 name = "ptr_meta"

@@ -4,7 +4,7 @@
 //! Datomic (the CLI's argv-embody path) and rkyv (the daemon's
 //! UDS frame).
 
-use chronos::{Latitude, Longitude, Request, SolarEventKind};
+use chronos::{Latitude, Longitude, Request, RequestSetLocation, RequestSubscribe, SolarEventKind};
 
 fn round_trip_datomic(text: &str) -> Request {
     let request = Request::from_text(text).expect("Datomic embody");
@@ -43,13 +43,13 @@ fn get_location() {
 
 #[test]
 fn set_location_seattle() {
-    let request = round_trip_datomic("SetLocation.{47.6 -122.3}");
+    let request = round_trip_datomic("SetLocation.{ 47.6 -122.3 }");
     assert_eq!(
         request,
-        Request::SetLocation {
+        Request::SetLocation(RequestSetLocation {
             latitude: Latitude::try_new(47.6).unwrap(),
             longitude: Longitude::try_new(-122.3).unwrap(),
-        }
+        })
     );
     round_trip_rkyv(&request);
 }
@@ -63,7 +63,10 @@ fn use_geoclue() {
 
 #[test]
 fn subscribe_civil_dawn_and_dusk() {
-    let request = round_trip_datomic("Subscribe.{[CivilDawn CivilDusk]}");
-    assert_eq!(request, Request::Subscribe { kinds: vec![SolarEventKind::CivilDawn, SolarEventKind::CivilDusk] });
+    let request = round_trip_datomic("Subscribe.{ [ CivilDawn CivilDusk ] }");
+    assert_eq!(
+        request,
+        Request::Subscribe(RequestSubscribe { kinds: vec![SolarEventKind::CivilDawn, SolarEventKind::CivilDusk] })
+    );
     round_trip_rkyv(&request);
 }

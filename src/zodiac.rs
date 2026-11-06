@@ -13,8 +13,6 @@
 
 use core::fmt;
 
-use datom_codec::{Datom, Datomic, Headed, Positional, Sited};
-use protos::{Conceivable, Extent, Opaque, Situated, Situation};
 use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::error::{Error, Result};
@@ -22,7 +20,19 @@ use crate::error::{Error, Result};
 /// One of the twelve zodiac signs, in source-declaration
 /// order matching the standard zodiacal sequence (Aries first,
 /// Pisces last).
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    datom_codec::Composing,
+    datom_codec::Datomizable,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub enum ZodiacSign {
     Aries,
     Taurus,
@@ -84,57 +94,6 @@ impl fmt::Display for ZodiacSign {
     }
 }
 
-impl Datomic for ZodiacSign {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let variant = site.variant()?;
-        let value = match variant.name {
-            "Aries" => Self::Aries,
-            "Taurus" => Self::Taurus,
-            "Gemini" => Self::Gemini,
-            "Cancer" => Self::Cancer,
-            "Leo" => Self::Leo,
-            "Virgo" => Self::Virgo,
-            "Libra" => Self::Libra,
-            "Scorpio" => Self::Scorpio,
-            "Sagittarius" => Self::Sagittarius,
-            "Capricorn" => Self::Capricorn,
-            "Aquarius" => Self::Aquarius,
-            "Pisces" => Self::Pisces,
-            name => {
-                return Err(variant.reject(datom_codec::Problem::UnknownVariant(
-                    protos::Word::try_from(name).expect("variant word"),
-                )));
-            }
-        };
-        Headed::nothing(variant)?;
-        Ok(value)
-    }
-}
-
-impl Conceivable<Datom> for ZodiacSign {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        let word = match self {
-            Self::Aries => "Aries",
-            Self::Taurus => "Taurus",
-            Self::Gemini => "Gemini",
-            Self::Cancer => "Cancer",
-            Self::Leo => "Leo",
-            Self::Virgo => "Virgo",
-            Self::Libra => "Libra",
-            Self::Scorpio => "Scorpio",
-            Self::Sagittarius => "Sagittarius",
-            Self::Capricorn => "Capricorn",
-            Self::Aquarius => "Aquarius",
-            Self::Pisces => "Pisces",
-        };
-        Ok(Situated(
-            Situation { extent: Extent(0, 0), children: vec![] },
-            Datom::Word(datom_codec::DatomWord::try_from(word).expect("static word")),
-        ))
-    }
-}
-
 /// The sun's apparent ecliptic longitude in degrees, in
 /// `[0.0, 360.0)`.
 ///
@@ -181,25 +140,6 @@ impl fmt::Display for EclipticLongitude {
     }
 }
 
-impl Datomic for EclipticLongitude {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let extent = site.at.extent;
-        let value = f64::from(protos::Decimal::incorporate(site)?);
-        Self::try_new(value).map_err(|_| {
-            datom_codec::Fault::Corporate(
-                datom_codec::Locus { path: vec![], extent },
-                datom_codec::Problem::Value(Opaque::from(value.to_string())),
-            )
-        })
-    }
-}
-impl Conceivable<Datom> for EclipticLongitude {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        protos::Decimal::try_from(self.0).expect("finite longitude").conceive()
-    }
-}
-
 /// Degrees within a zodiacal sign, in `[0, 30)`.
 #[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ZodiacDegree(u8);
@@ -217,25 +157,6 @@ impl ZodiacDegree {
     /// The degree as a `u8` in `[0, 30)`.
     pub fn as_u8(&self) -> u8 {
         self.0
-    }
-}
-
-impl Datomic for ZodiacDegree {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let extent = site.at.extent;
-        let value: i64 = protos::Integer::incorporate(site)?;
-        u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
-            datom_codec::Fault::Corporate(
-                datom_codec::Locus { path: vec![], extent },
-                datom_codec::Problem::Value(Opaque::from(value.to_string())),
-            )
-        })
-    }
-}
-impl Conceivable<Datom> for ZodiacDegree {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        protos::Integer::from(i64::from(self.0)).conceive()
     }
 }
 
@@ -259,29 +180,20 @@ impl ZodiacMinute {
     }
 }
 
-impl Datomic for ZodiacMinute {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let extent = site.at.extent;
-        let value: i64 = protos::Integer::incorporate(site)?;
-        u8::try_from(value).ok().and_then(|value| Self::try_new(value).ok()).ok_or_else(|| {
-            datom_codec::Fault::Corporate(
-                datom_codec::Locus { path: vec![], extent },
-                datom_codec::Problem::Value(Opaque::from(value.to_string())),
-            )
-        })
-    }
-}
-impl Conceivable<Datom> for ZodiacMinute {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        protos::Integer::from(i64::from(self.0)).conceive()
-    }
-}
-
 /// A point on the zodiac: `sign` + `degree` (0..30) + `minute`
 /// (0..60). Carried forward from the prototype's zodiacal-time
 /// output formats.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(
+    datom_codec::Composing,
+    datom_codec::Datomizable,
+    Archive,
+    RkyvSerialize,
+    RkyvDeserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+)]
 pub struct ZodiacalTime {
     pub sign: ZodiacSign,
     pub degree: ZodiacDegree,
@@ -309,18 +221,8 @@ impl fmt::Display for ZodiacalTime {
     }
 }
 
-impl Datomic for ZodiacalTime {
-    fn incorporate(site: datom_codec::Site<'_>) -> core::result::Result<Self, datom_codec::Fault> {
-        let mut positions = site.positions(3)?;
-        Ok(Self { sign: positions.position()?, degree: positions.position()?, minute: positions.position()? })
-    }
-}
-impl Conceivable<Datom> for ZodiacalTime {
-    type Fault = core::convert::Infallible;
-    fn conceive(&self) -> core::result::Result<Situated<Datom>, Self::Fault> {
-        Ok(Situated(
-            Situation { extent: Extent(0, 0), children: vec![] },
-            Datom::Struct(vec![self.sign.conceive()?.1, self.degree.conceive()?.1, self.minute.conceive()?.1]),
-        ))
-    }
-}
+crate::scalar::decimal_scalar!(EclipticLongitude);
+
+crate::scalar::integer_scalar!(ZodiacDegree, u8);
+
+crate::scalar::integer_scalar!(ZodiacMinute, u8);
