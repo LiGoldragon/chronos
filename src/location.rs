@@ -24,7 +24,7 @@ use crate::error::{Error, Result};
 /// out-of-range and non-finite inputs. The wire form is the
 /// bare degrees value; decode routes through `try_new`, so an
 /// invalid wire latitude is rejected at the parser boundary.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq)]
 pub struct Latitude(f64);
 
 impl Latitude {
@@ -56,7 +56,7 @@ impl From<Latitude> for f64 {
 }
 
 /// Longitude in degrees, in `[-180.0, 180.0]`. East is positive.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq)]
 pub struct Longitude(f64);
 
 impl Longitude {
@@ -158,3 +158,7 @@ pub enum LocationSource {
 crate::scalar::decimal_scalar!(Latitude);
 
 crate::scalar::decimal_scalar!(Longitude);
+
+crate::scalar::archived_scalar!(float Latitude, ArchivedLatitude);
+
+crate::scalar::archived_scalar!(float Longitude, ArchivedLongitude);

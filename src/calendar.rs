@@ -56,7 +56,7 @@ impl fmt::Display for AmYear {
 /// rejects out-of-range and non-finite inputs.
 /// [`OrdinalSolarTime::from_unnormalized_fraction`] wraps any
 /// finite input into `[0, 1)` for astronomical-pipeline use.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq)]
 pub struct OrdinalSolarTime(f64);
 
 impl OrdinalSolarTime {
@@ -116,3 +116,5 @@ impl datom_codec::Datomizable for AmYear {
         datom_codec::Datomizable::datomize(&i64::from(self.0), at)
     }
 }
+
+crate::scalar::archived_scalar!(float OrdinalSolarTime, ArchivedOrdinalSolarTime);

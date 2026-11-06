@@ -53,6 +53,6 @@ impl Request {
     }
 
     pub fn from_archive(bytes: &[u8]) -> Result<Self> {
-        rkyv::from_bytes::<Self, rkyv::rancor::Error>(bytes).map_err(|error| Error::RkyvCodec(error.to_string()))
+        rkyv::from_bytes::<Self, crate::archive::ArchiveFault>(bytes).map_err(Into::into)
     }
 }

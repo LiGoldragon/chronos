@@ -62,3 +62,29 @@ macro_rules! integer_scalar {
 
 pub(crate) use decimal_scalar;
 pub(crate) use integer_scalar;
+
+/// The archive twin of a checked scalar: reconstructing the value from its archive calls
+/// the one constructor, `try_new`, so rkyv admits only what text and code admit.
+/// The archived representation is untouched; `float` archives an f64, `byte` a u8.
+macro_rules! archived_scalar {
+    (float $type:ident, $archived:ident) => {
+        $crate::scalar::archived_scalar!(@implement $type, $archived, |archived: &$archived| archived.0.to_native());
+    };
+    (byte $type:ident, $archived:ident) => {
+        $crate::scalar::archived_scalar!(@implement $type, $archived, |archived: &$archived| archived.0);
+    };
+    (@implement $type:ident, $archived:ident, $native:expr) => {
+        impl<D> rkyv::Deserialize<$type, D> for $archived
+        where
+            D: rkyv::rancor::Fallible + ?Sized,
+            D::Error: rkyv::rancor::Source,
+        {
+            fn deserialize(&self, _deserializer: &mut D) -> core::result::Result<$type, D::Error> {
+                let native = ($native)(self);
+                $type::try_new(native).map_err(<D::Error as rkyv::rancor::Source>::new)
+            }
+        }
+    };
+}
+
+pub(crate) use archived_scalar;

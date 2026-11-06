@@ -12,6 +12,7 @@
 //! the agent contract, and `skills.md` for project-specific
 //! intent and invariants.
 
+pub mod archive;
 pub mod calendar;
 pub mod client;
 pub mod daemon;
@@ -26,6 +27,7 @@ mod text;
 pub mod wire;
 pub mod zodiac;
 
+pub use archive::ArchiveFault;
 pub use calendar::{AmYear, OrdinalSolarTime};
 pub use error::{Error, Result};
 pub use event::{EpochTaiNanos, SolarEvent, SolarEventKind};

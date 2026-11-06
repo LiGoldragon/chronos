@@ -12,7 +12,7 @@ What breaks in the library:
 - `chronos::Error::Datomic` carries the codec's positioned error as text; `Error::from_fault` is `Error::from_datom`.
 - `.ethos/data/chronos.ethos` is in the current Ethos syntax and its projection is regenerated.
 
-Known risk, unchanged by this release: the rkyv archive path (`Request::from_archive`, `Response::from_archive`, used by the daemon's frame read and the client's reply read) checks the archive's structure and fills the scalars directly, without `try_new`. A frame carrying an out-of-range `Latitude` is admitted there. No archive layout changes here.
+Archive admission: the rkyv archive of the six ranged scalars (`Latitude`, `Longitude`, `OrdinalSolarTime`, `EclipticLongitude`, `ZodiacDegree`, `ZodiacMinute`) is reconstructed through the same `try_new`, by a hand `rkyv::Deserialize` for each archived type; the archived representation and every byte layout are unchanged (`AmYear` admits any `i32`, so its archive needs no check). A direct `rkyv::from_bytes`, a nested one through `Location`, `SolarEvent`, `ZodiacalTime`, `Request` or `Response`, and the frame entry points `Request::from_archive` and `Response::from_archive` refuse an out-of-range or non-finite value; the frame entry points return `Error::OutOfRange`, and `ArchiveFault` is the typed rkyv error that carries it. Bytecheck still validates structure only. A value already archived out of range is refused on read, never clamped or migrated.
 
 How to deploy: build chronos 0.4.0 and replace the binaries. No stored state changes.
 

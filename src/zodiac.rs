@@ -103,7 +103,7 @@ impl fmt::Display for ZodiacSign {
 /// outside `[0, 360)`) normalises through
 /// [`EclipticLongitude::from_unnormalized_degrees`] before
 /// constructing, so the wire form is always normalised.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq)]
 pub struct EclipticLongitude(f64);
 
 impl EclipticLongitude {
@@ -141,7 +141,7 @@ impl fmt::Display for EclipticLongitude {
 }
 
 /// Degrees within a zodiacal sign, in `[0, 30)`.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ZodiacDegree(u8);
 
 impl ZodiacDegree {
@@ -161,7 +161,7 @@ impl ZodiacDegree {
 }
 
 /// Minutes within a zodiacal degree, in `[0, 60)`.
-#[derive(Archive, RkyvSerialize, RkyvDeserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Archive, RkyvSerialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ZodiacMinute(u8);
 
 impl ZodiacMinute {
@@ -226,3 +226,9 @@ crate::scalar::decimal_scalar!(EclipticLongitude);
 crate::scalar::integer_scalar!(ZodiacDegree, u8);
 
 crate::scalar::integer_scalar!(ZodiacMinute, u8);
+
+crate::scalar::archived_scalar!(float EclipticLongitude, ArchivedEclipticLongitude);
+
+crate::scalar::archived_scalar!(byte ZodiacDegree, ArchivedZodiacDegree);
+
+crate::scalar::archived_scalar!(byte ZodiacMinute, ArchivedZodiacMinute);
